@@ -1,0 +1,25 @@
+github:
+  token_env_var: "GITHUB_TOKEN"
+  max_concurrent: 5
+  requests_per_second: 8.0
+  max_retries: 3
+  base_backoff: 2.0
+  max_backoff: 60.0
+
+scoring:
+  weight_activity: 0.3
+  weight_community: 0.2
+  weight_quality: 0.3
+  weight_maintenance: 0.2
+
+output:
+  format: "json"
+  data_dir: "data"
+
+llm:
+  enabled: true
+  model: "claude-haiku-4-5-20251001"
+  token_env_var: "ANTHROPIC_API_KEY"
+  max_tokens: 700
+  temperature: 0.7
+  readme_max_chars: 15000

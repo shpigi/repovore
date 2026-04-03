@@ -1,0 +1,274 @@
+{% extends "base.html" %}
+{% block title %}{{ card.owner }}/{{ card.name }} — Repovore{% endblock %}
+
+{% macro check(val) %}
+{% if val %}<span class="check-yes">&#10004;</span>{% else %}<span class="check-no">&#10008;</span>{% endif %}
+{% endmacro %}
+
+{% macro opt(val, fmt="") %}
+{% if val is none %}<span class="muted">unknown</span>{% elif fmt == "," %}{{ "{:,}".format(val) }}{% elif fmt == ".0f" %}{{ "%.0f" | format(val) }}{% elif fmt == ".1f" %}{{ "%.1f" | format(val) }}{% else %}{{ val }}{% endif %}
+{% endmacro %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ul>
+    <li><a href="/">Cards</a></li>
+    <li>{{ card.owner }}/{{ card.name }}</li>
+  </ul>
+</nav>
+
+{# ── Header ─────────────────────────────────────────────────── #}
+<article class="card-header-article">
+  <header>
+    <hgroup>
+      <h1>
+        <span class="repo-owner">{{ card.owner }}/</span>{{ card.name }}
+        {% if card.archived %}<span class="badge badge-health-low">ARCHIVED</span>{% endif %}
+      </h1>
+      {% if card.description %}<p>{{ card.description }}</p>{% endif %}
+    </hgroup>
+  </header>
+
+  <div class="header-meta">
+    <span class="stars-display">{{ "{:,}".format(card.stars) }}</span>
+    <span class="forks-display">{{ "{:,}".format(card.forks) }}</span>
+    {% if card.license %}<span class="license-display">{{ card.license }}</span>{% endif %}
+    {% if card.repo_age_days is not none %}
+    <span class="muted">{{ "%.1f" | format(card.repo_age_days / 365) }}y old</span>
+    {% endif %}
+    {% if card.stars_per_year is not none %}
+    <span class="muted">{{ "{:,.0f}".format(card.stars_per_year) }} stars/yr</span>
+    {% endif %}
+  </div>
+
+  {% set display_tags = card.tags if card.tags else card.topics %}
+  {% if display_tags %}
+  <div class="tags">
+    {% for t in display_tags[:12] %}
+    <span class="tag">#{{ t }}</span>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <a href="{{ card.url }}" target="_blank" rel="noopener" class="repo-link">{{ card.url }}</a>
+</article>
+
+{# ── Score Banner ────────────────────────────────────────────── #}
+{% set score = card.health_score %}
+{% set score_class = "high" if score >= 75 else "mid" if score >= 50 else "low" %}
+{% set ml = card.maintenance_level %}
+
+<div class="score-banner grid">
+  <div class="score-box">
+    <div class="score-label">HEALTH SCORE</div>
+    <div class="score-value badge-health-{{ score_class }}">{{ "%.0f" | format(score) }}<span class="score-max"> / 100</span></div>
+  </div>
+  <div class="score-box">
+    <div class="score-label">GH COMMUNITY</div>
+    <div class="score-value">{% if card.community_health_pct is not none %}{{ card.community_health_pct }}%{% else %}&mdash;{% endif %}</div>
+  </div>
+  <div class="score-box">
+    <div class="score-label">MAINTENANCE</div>
+    <div class="score-value"><span class="pill pill-{{ ml }}">{{ ml | upper }}</span></div>
+  </div>
+</div>
+
+{# ── Activity & Quality ─────────────────────────────────────── #}
+<div class="grid">
+
+  <article>
+    <header><strong>Activity</strong></header>
+    <table class="detail-table">
+      <tr>
+        <td class="label">Last commit</td>
+        <td>{% if card.last_commit_date %}{{ card.last_commit_date.strftime('%Y-%m-%d') }}{% else %}{{ opt(none) }}{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="label">Commits (90d)</td>
+        <td>{{ opt(card.commit_frequency_90d) }}</td>
+      </tr>
+      <tr>
+        <td class="label">Last release</td>
+        <td>
+          {% if card.latest_release_tag %}
+            <span class="release-tag">{{ card.latest_release_tag }}</span>
+          {% elif card.last_release_date %}
+            {{ card.last_release_date.strftime('%Y-%m-%d') }}
+          {% else %}
+            {{ opt(none) }}
+          {% endif %}
+        </td>
+      </tr>
+      <tr>
+        <td class="label">Days since release</td>
+        <td>{{ opt(card.days_since_last_release) }}</td>
+      </tr>
+      <tr>
+        <td class="label">Owner commits (52w)</td>
+        <td>{% if card.owner_commit_pct is not none %}{{ "%.0f" | format(card.owner_commit_pct) }}%{% else %}{{ opt(none) }}{% endif %}</td>
+      </tr>
+      <tr>
+        <td class="label">Churn (52w)</td>
+        <td>
+          {% if card.code_churn_additions_52w %}<span class="text-green">+{{ "{:,}".format(card.code_churn_additions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
+          /
+          {% if card.code_churn_deletions_52w %}<span class="text-red">-{{ "{:,}".format(card.code_churn_deletions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
+        </td>
+      </tr>
+    </table>
+
+    {% if card.top_contributors %}
+    <div class="contributors">
+      <small class="label">Top contributors</small><br>
+      {% for c in card.top_contributors %}
+      <span class="contributor">@{{ c.login }} <small class="muted">{{ "%.0f" | format(c.pct | float) }}%</small></span>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </article>
+
+  <article>
+    <header><strong>Quality Signals</strong></header>
+    <table class="detail-table">
+      <tr><td class="label">README</td><td>{{ check(card.has_readme) }}</td>
+          <td class="label">LICENSE</td><td>{{ check(card.has_license) }}</td></tr>
+      <tr><td class="label">CI</td><td>{{ check(card.has_ci) }}{% if card.has_ci and card.ci_success_rate is not none %} <small>{{ "%.0f" | format(card.ci_success_rate) }}% passing</small>{% endif %}</td>
+          <td class="label">Contributing</td><td>{{ check(card.has_contributing) }}</td></tr>
+      <tr><td class="label">Code of Conduct</td><td>{{ check(card.has_code_of_conduct) }}</td>
+          <td class="label">Funding</td><td>{{ check(card.has_funding) }}</td></tr>
+      <tr>
+        <td class="label">Bus factor</td>
+        <td>{% if card.bus_factor_top3_pct is not none %}{{ "%.0f" | format(card.bus_factor_top3_pct) }}%{% else %}{{ opt(none) }}{% endif %}</td>
+        <td class="label">Dependabot</td>
+        <td>
+          {% if card.dependabot_open_total is none %}<span class="muted">?</span>
+          {% elif card.dependabot_open_total == 0 %}<span class="text-green">0 &#10004;</span>
+          {% else %}<span class="text-red">{{ card.dependabot_open_total }}{% if card.dependabot_open_critical %} ({{ card.dependabot_open_critical }} crit){% endif %}</span>
+          {% endif %}
+        </td>
+      </tr>
+    </table>
+  </article>
+
+</div>
+
+{# ── Issues & PRs ────────────────────────────────────────────── #}
+<article>
+  <header><strong>Issues & Pull Requests</strong></header>
+  <div class="grid">
+    <div>
+      <table class="detail-table">
+        <tr><td class="label">Issues open</td><td>{{ card.open_issues }}</td>
+            <td class="label">Issues closed</td><td class="text-green">{{ card.closed_issues }}</td></tr>
+        <tr><td class="label">PRs open</td><td>{{ card.open_prs }}</td>
+            <td class="label">PRs closed</td><td class="text-green">{{ card.closed_prs }}</td></tr>
+      </table>
+    </div>
+    {% if card.issue_response_time_median_hours is not none %}
+    <div>
+      <small class="label">Median issue response time</small><br>
+      {{ "%.1f" | format(card.issue_response_time_median_hours) }} hours
+    </div>
+    {% endif %}
+  </div>
+</article>
+
+{# ── Owner ────────────────────────────────────────────────────── #}
+<article>
+  <header><strong>Owner &mdash; {{ card.owner }}</strong></header>
+  <table class="detail-table">
+    <tr><td class="label">Type</td><td>{{ card.owner_type or "unknown" }}</td></tr>
+    <tr><td class="label">Followers</td><td>{{ opt(card.owner_followers, ",") }}</td></tr>
+    <tr><td class="label">Public repos</td><td>{{ opt(card.owner_public_repos) }}</td></tr>
+    {% if card.owner_account_age_days is not none %}
+    <tr><td class="label">Account age</td><td>{{ "%.1f" | format(card.owner_account_age_days / 365) }} years</td></tr>
+    {% endif %}
+  </table>
+</article>
+
+{# ── Languages ────────────────────────────────────────────────── #}
+{% if card.languages %}
+<article>
+  <header><strong>Languages</strong></header>
+  {% set langs = card.languages.items() | sort(attribute='1', reverse=true) %}
+  {% for lang, pct in langs if pct >= 0.1 %}
+  <div class="lang-row">
+    <span class="lang-name">{{ lang }}</span>
+    <div class="lang-bar-bg">
+      <div class="lang-bar-fill" style="width: {{ pct }}%"></div>
+    </div>
+    <span class="lang-pct">{{ "%.1f" | format(pct) }}%</span>
+  </div>
+  {% endfor %}
+</article>
+{% endif %}
+
+{# ── LLM Assessment ──────────────────────────────────────────── #}
+{% if card.summary or card.verdict or card.strengths or card.concerns %}
+<article class="llm-article">
+  <header><strong>LLM Assessment</strong></header>
+
+  {% if card.verdict %}
+  <span class="pill pill-verdict-{{ card.verdict }} verdict-large">{{ card.verdict | upper }}</span>
+  {% endif %}
+
+  {% if card.summary %}
+  <p class="llm-summary">{{ card.summary }}</p>
+  {% endif %}
+
+  {% if card.strengths %}
+  <div class="llm-list">
+    {% for s in card.strengths %}
+    <div class="llm-item llm-strength"><span class="check-yes">&#10004;</span> {{ s }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if card.concerns %}
+  <div class="llm-list">
+    {% for s in card.concerns %}
+    <div class="llm-item llm-concern"><span class="check-no">&#10008;</span> {{ s }}</div>
+    {% endfor %}
+  </div>
+  {% endif %}
+</article>
+{% endif %}
+
+{# ── Footer actions ──────────────────────────────────────────── #}
+<div class="card-footer-actions">
+  <small class="muted">
+    Fetched {{ card.fetched_at.strftime('%Y-%m-%d %H:%M UTC') }} &middot; repovore v{{ card.card_version }}
+  </small>
+
+  <span id="staleness-result"></span>
+  <button class="outline secondary btn-sm"
+          hx-get="/api/cards/{{ card.owner }}/{{ card.name }}/staleness"
+          hx-target="#staleness-result"
+          hx-swap="innerHTML"
+          hx-on::after-request="
+            let data = JSON.parse(event.detail.xhr.responseText);
+            let el = document.getElementById('staleness-result');
+            if (data.stale) {
+              el.innerHTML = '<span class=\'pill pill-verdict-hold\'>Stale — repo has new pushes</span>';
+            } else if (data.error) {
+              el.innerHTML = '<span class=\'muted\'>' + data.error + '</span>';
+            } else {
+              el.innerHTML = '<span class=\'pill pill-active\'>Up to date</span>';
+            }
+          ">
+    Check staleness
+  </button>
+
+  <button class="outline btn-sm"
+          id="refresh-btn"
+          hx-post="/api/cards/{{ card.owner }}/{{ card.name }}/refresh"
+          hx-swap="none"
+          hx-indicator="#refresh-spinner"
+          hx-on::before-request="this.setAttribute('aria-busy', 'true'); this.disabled = true;"
+          hx-on::after-request="window.location.reload();">
+    Refresh
+  </button>
+  <span id="refresh-spinner" class="htmx-indicator muted">Refreshing...</span>
+</div>
+
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Repovore — Cards{% endblock %}
+
+{% block content %}
+<header>
+  <h1>Repository Cards</h1>
+  <p>{{ cards | length }} repositories assessed</p>
+</header>
+
+<div class="filter-bar">
+  <div class="grid">
+    <div>
+      <input type="search" id="search-input" name="q" placeholder="Search repos..."
+             hx-get="/api/cards" hx-trigger="keyup changed delay:300ms"
+             hx-target="#cards-body" hx-swap="innerHTML"
+             hx-include="[name='maintenance'],[name='verdict']"
+             hx-vals='{"sort": "{{ sort }}", "order": "{{ order }}"}'>
+    </div>
+    <div>
+      <select name="maintenance"
+              hx-get="/api/cards" hx-trigger="change"
+              hx-target="#cards-body" hx-swap="innerHTML"
+              hx-include="[name='q'],[name='verdict']"
+              hx-vals='{"sort": "{{ sort }}", "order": "{{ order }}"}'>
+        <option value="">All Maintenance</option>
+        <option value="active">Active</option>
+        <option value="maintained">Maintained</option>
+        <option value="minimal">Minimal</option>
+        <option value="abandoned">Abandoned</option>
+      </select>
+    </div>
+    <div>
+      <select name="verdict"
+              hx-get="/api/cards" hx-trigger="change"
+              hx-target="#cards-body" hx-swap="innerHTML"
+              hx-include="[name='q'],[name='maintenance']"
+              hx-vals='{"sort": "{{ sort }}", "order": "{{ order }}"}'>
+        <option value="">All Verdicts</option>
+        <option value="adopt">Adopt</option>
+        <option value="evaluate">Evaluate</option>
+        <option value="hold">Hold</option>
+        <option value="avoid">Avoid</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<figure>
+<table role="grid" class="cards-table">
+  <thead>
+    <tr>
+      {% macro sort_header(field, label) %}
+      {% set new_order = "asc" if (sort == field and order == "desc") else "desc" %}
+      <th>
+        <a href="#" class="sort-link {% if sort == field %}active{% endif %}"
+           hx-get="/api/cards?sort={{ field }}&order={{ new_order }}"
+           hx-target="#cards-body" hx-swap="innerHTML"
+           hx-include="[name='q'],[name='maintenance'],[name='verdict']">
+          {{ label }}
+          {% if sort == field %}
+            {% if order == "desc" %}&#9660;{% else %}&#9650;{% endif %}
+          {% endif %}
+        </a>
+      </th>
+      {% endmacro %}
+
+      {{ sort_header("health_score", "Health") }}
+      {{ sort_header("name", "Repository") }}
+      {{ sort_header("stars", "Stars") }}
+      <th>Language</th>
+      {{ sort_header("maintenance_level", "Maintenance") }}
+      <th>Verdict</th>
+      {{ sort_header("last_commit_date", "Last Commit") }}
+    </tr>
+  </thead>
+  <tbody id="cards-body">
+    {% include "partials/cards_table.html" %}
+  </tbody>
+</table>
+</figure>
+{% endblock %}

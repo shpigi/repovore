@@ -1,0 +1,48 @@
+{% for card in cards %}
+<tr class="card-row" onclick="window.location='/cards/{{ card.owner }}/{{ card.name }}'">
+  <td>
+    {% set score = card.health_score or 0 %}
+    <span class="badge badge-health-{{ 'high' if score >= 75 else 'mid' if score >= 50 else 'low' }}">
+      {{ "%.0f" | format(score) }}
+    </span>
+  </td>
+  <td>
+    <a href="/cards/{{ card.owner }}/{{ card.name }}">
+      <span class="repo-owner">{{ card.owner }}/</span><strong>{{ card.name }}</strong>
+    </a>
+    {% if card.description %}
+    <br><small class="description">{{ card.description[:80] }}{% if card.description | length > 80 %}...{% endif %}</small>
+    {% endif %}
+  </td>
+  <td class="stars-cell">{{ "{:,}".format(card.stars or 0) }}</td>
+  <td>
+    {% if card.primary_language %}
+    <span class="lang-pill">{{ card.primary_language }}</span>
+    {% else %}
+    <span class="muted">&mdash;</span>
+    {% endif %}
+  </td>
+  <td>
+    {% set ml = card.maintenance_level or "unknown" %}
+    <span class="pill pill-{{ ml }}">{{ ml }}</span>
+  </td>
+  <td>
+    {% set v = card.verdict or "" %}
+    {% if v %}
+    <span class="pill pill-verdict-{{ v }}">{{ v }}</span>
+    {% else %}
+    <span class="muted">&mdash;</span>
+    {% endif %}
+  </td>
+  <td>
+    {% if card.last_commit_date %}
+    {{ card.last_commit_date[:10] }}
+    {% else %}
+    <span class="muted">&mdash;</span>
+    {% endif %}
+  </td>
+</tr>
+{% endfor %}
+{% if not cards %}
+<tr><td colspan="7" class="empty-state">No cards found.</td></tr>
+{% endif %}

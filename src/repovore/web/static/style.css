@@ -1,0 +1,211 @@
+/* ── Repovore Web UI ─────────────────────────────────────────── */
+
+:root {
+  --health-high: #22c55e;
+  --health-mid: #eab308;
+  --health-low: #ef4444;
+  --verdict-adopt: #22c55e;
+  --verdict-evaluate: #eab308;
+  --verdict-hold: #f97316;
+  --verdict-avoid: #ef4444;
+  --active: #22c55e;
+  --maintained: #16a34a;
+  --minimal: #eab308;
+  --abandoned: #ef4444;
+}
+
+/* ── Brand ───────────────────────────────────────────────────── */
+.brand { text-decoration: none; font-size: 1.2rem; }
+
+/* ── Badges ──────────────────────────────────────────────────── */
+.badge {
+  display: inline-block;
+  padding: 0.15rem 0.5rem;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+.badge-health-high { background: var(--health-high); color: #000; }
+.badge-health-mid  { background: var(--health-mid);  color: #000; }
+.badge-health-low  { background: var(--health-low);  color: #fff; }
+
+/* ── Pills ───────────────────────────────────────────────────── */
+.pill {
+  display: inline-block;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+.pill-active     { background: var(--active);     color: #000; }
+.pill-maintained { background: var(--maintained); color: #fff; }
+.pill-minimal    { background: var(--minimal);    color: #000; }
+.pill-abandoned  { background: var(--abandoned);  color: #fff; }
+.pill-unknown    { background: #666;              color: #fff; }
+
+.pill-verdict-adopt    { background: var(--verdict-adopt);    color: #000; }
+.pill-verdict-evaluate { background: var(--verdict-evaluate); color: #000; }
+.pill-verdict-hold     { background: var(--verdict-hold);     color: #000; }
+.pill-verdict-avoid    { background: var(--verdict-avoid);    color: #fff; }
+
+.verdict-large { font-size: 1rem; padding: 0.25rem 0.8rem; }
+
+/* ── Table ───────────────────────────────────────────────────── */
+.cards-table { width: 100%; }
+.cards-table th { white-space: nowrap; }
+.cards-table td { vertical-align: middle; }
+
+.card-row { cursor: pointer; transition: background 0.15s; }
+.card-row:hover { background: rgba(255,255,255,0.04); }
+.card-row a { text-decoration: none; }
+
+.sort-link { text-decoration: none; color: inherit; white-space: nowrap; }
+.sort-link.active { color: var(--pico-primary); }
+
+.repo-owner { opacity: 0.6; }
+.description { opacity: 0.6; }
+.muted { opacity: 0.5; }
+.stars-cell { font-variant-numeric: tabular-nums; }
+.empty-state { text-align: center; padding: 2rem; opacity: 0.5; }
+
+/* ── Detail table ────────────────────────────────────────────── */
+.detail-table { margin: 0; }
+.detail-table td { padding: 0.25rem 0.5rem; }
+.detail-table .label { opacity: 0.6; white-space: nowrap; }
+
+/* ── Lang pill ───────────────────────────────────────────────── */
+.lang-pill {
+  display: inline-block;
+  padding: 0.05rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ── Score banner ────────────────────────────────────────────── */
+.score-banner {
+  text-align: center;
+  margin: 1.5rem 0;
+}
+.score-box {
+  padding: 1rem;
+}
+.score-label {
+  font-size: 0.75rem;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+.score-value {
+  font-size: 2rem;
+  font-weight: 700;
+}
+.score-max {
+  font-size: 1rem;
+  opacity: 0.5;
+  font-weight: 400;
+}
+
+/* ── Header meta ─────────────────────────────────────────────── */
+.card-header-article header { margin-bottom: 0.5rem; }
+.header-meta {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-bottom: 0.5rem;
+  align-items: center;
+}
+.stars-display::before { content: "\2B50 "; }
+.forks-display::before { content: "\1F374 "; }
+.license-display { opacity: 0.7; }
+.license-display::before { content: "\2696\FE0F "; }
+.repo-link { font-size: 0.85rem; opacity: 0.6; }
+
+.tags { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-bottom: 0.5rem; }
+.tag {
+  font-size: 0.75rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  background: rgba(100, 200, 255, 0.15);
+  color: #7dd3fc;
+}
+
+/* ── Language bars ────────────────────────────────────────────── */
+.lang-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+.lang-name { width: 120px; flex-shrink: 0; font-size: 0.85rem; opacity: 0.8; }
+.lang-bar-bg {
+  flex: 1;
+  height: 12px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 6px;
+  overflow: hidden;
+}
+.lang-bar-fill {
+  height: 100%;
+  background: #22d3ee;
+  border-radius: 6px;
+  min-width: 2px;
+}
+.lang-pct {
+  width: 50px;
+  text-align: right;
+  font-size: 0.85rem;
+  font-variant-numeric: tabular-nums;
+  color: #22d3ee;
+}
+
+/* ── Check marks ─────────────────────────────────────────────── */
+.check-yes { color: var(--health-high); font-weight: bold; }
+.check-no  { color: var(--health-low); opacity: 0.5; }
+
+/* ── Text colors ─────────────────────────────────────────────── */
+.text-green { color: var(--health-high); }
+.text-red   { color: var(--health-low); }
+
+/* ── LLM ─────────────────────────────────────────────────────── */
+.llm-summary { font-style: italic; opacity: 0.85; margin: 0.75rem 0; }
+.llm-list { margin: 0.5rem 0; }
+.llm-item { margin: 0.2rem 0; }
+.llm-strength { color: var(--health-high); }
+.llm-concern  { color: var(--health-low); }
+
+/* ── Contributors ────────────────────────────────────────────── */
+.contributors { margin-top: 0.75rem; }
+.contributor {
+  display: inline-block;
+  margin-right: 0.75rem;
+  font-size: 0.85rem;
+}
+
+/* ── Release tag ─────────────────────────────────────────────── */
+.release-tag { font-family: monospace; }
+
+/* ── Card footer ─────────────────────────────────────────────── */
+.card-footer-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin: 2rem 0 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,0.1);
+}
+.btn-sm {
+  padding: 0.3rem 0.8rem !important;
+  font-size: 0.8rem !important;
+}
+
+/* ── Filter bar ──────────────────────────────────────────────── */
+.filter-bar { margin-bottom: 1rem; }
+.filter-bar input, .filter-bar select { margin-bottom: 0; }
+
+/* ── htmx indicator ──────────────────────────────────────────── */
+.htmx-indicator { display: none; }
+.htmx-request .htmx-indicator, .htmx-request.htmx-indicator { display: inline; }
