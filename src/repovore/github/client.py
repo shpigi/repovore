@@ -389,6 +389,28 @@ class GitHubClient:
 
         return cast(dict[str, Any], await self._call(_get))
 
+    _STATS_ENDPOINTS = ("stats/participation", "stats/code_frequency")
+
+    def warm_stats(self, full_names: list[str]) -> None:
+        """Fire-and-forget requests to stats endpoints to trigger GitHub's background computation.
+
+        Call this before enrichment so stats are ready by the time _stats_get is called.
+        """
+        headers: dict[str, str] = {"Accept": "application/vnd.github+json"}
+        if self._token:
+            headers["Authorization"] = f"Bearer {self._token}"
+        warmed = 0
+        for full_name in full_names:
+            for endpoint in self._STATS_ENDPOINTS:
+                url = f"https://api.github.com/repos/{full_name}/{endpoint}"
+                try:
+                    resp = requests.get(url, headers=headers, timeout=10)
+                    if resp.status_code == 202:
+                        warmed += 1
+                except requests.RequestException:
+                    pass  # best-effort; real fetch will retry later
+        logger.info("Warmed stats for %d repos (%d endpoints still computing)", len(full_names), warmed)
+
     def _stats_get(self, full_name: str, endpoint: str) -> dict[str, Any] | list[Any] | None:
         """GET a GitHub stats endpoint, retrying on 202 (computing) up to 3 times.
 

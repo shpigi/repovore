@@ -32,6 +32,9 @@ def process(
         None, "--input", "-i", help="File with one GitHub URL per line"
     ),
     url: list[str] | None = typer.Option(None, "--url", "-u", help="Single GitHub URL"),
+    all_repos: bool = typer.Option(
+        False, "--all", "-a", help="Re-process all repos already in the database"
+    ),
     config: Path | None = typer.Option(None, "--config", "-c", help="Path to config file"),
     stage: str | None = typer.Option(None, "--stage", "-s", help="Run only this stage"),
     from_stage: str | None = typer.Option(
@@ -40,15 +43,34 @@ def process(
     force: bool = typer.Option(False, "--force", help="Re-process already completed items"),
 ) -> None:
     """Fetch, enrich, and score GitHub repositories."""
-    urls = _read_urls(input_file, url)
-    if not urls:
-        typer.echo("No URLs provided. Use --input FILE or --url URL.", err=True)
-        raise typer.Exit(code=1)
-
     try:
         cfg = load_config(config)
     except Exception as exc:
         typer.echo(f"Error loading config: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    urls = _read_urls(input_file, url)
+
+    if all_repos:
+        db_path = Path(cfg.output.data_dir) / "repovore.db"
+        if not db_path.exists():
+            typer.echo("No database found. Run 'repovore process' with URLs first.", err=True)
+            raise typer.Exit(code=1)
+        db = Database(db_path)
+        db_urls = [f"https://github.com/{r['project_path']}" for r in db.get_repos()]
+        if not db_urls:
+            typer.echo("No repos in database.", err=True)
+            raise typer.Exit(code=1)
+        # Merge: DB repos + any explicitly provided URLs (deduplicated)
+        seen = set(urls)
+        for u in db_urls:
+            if u not in seen:
+                seen.add(u)
+                urls.append(u)
+        typer.echo(f"Processing {len(urls)} repos from database")
+
+    if not urls:
+        typer.echo("No URLs provided. Use --input FILE, --url URL, or --all.", err=True)
         raise typer.Exit(code=1)
 
     from repovore.pipeline import Pipeline  # noqa: PLC0415
@@ -184,6 +206,122 @@ def show_all(
     for path in card_files:
         card = load_card(path)
         typer.echo(pretty_print_card(card))
+
+
+@app.command()
+def trending(
+    limit: int = typer.Option(30, "--limit", "-n", help="Max repos to fetch"),
+    days: int = typer.Option(7, "--days", "-d", help="Look-back window in days"),
+    language: str | None = typer.Option(None, "--language", "-l", help="Filter by language"),
+    topic: str | None = typer.Option(None, "--topic", "-t", help="Filter by topic or keywords"),
+    min_stars: int = typer.Option(10, "--min-stars", help="Minimum star count"),
+    config: Path | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+    force: bool = typer.Option(False, "--force", help="Re-process already completed items"),
+) -> None:
+    """Fetch trending repos via GitHub Search API and process them."""
+    from repovore.trending import fetch_trending  # noqa: PLC0415
+
+    try:
+        cfg = load_config(config)
+    except Exception as exc:
+        typer.echo(f"Error loading config: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    filters = ", ".join(
+        f for f in [
+            f"{days}d",
+            f"language={language}" if language else "",
+            f"topic={topic}" if topic else "",
+            f"stars>={min_stars}",
+        ] if f
+    )
+    typer.echo(f"Searching GitHub trending repos ({filters})...")
+    try:
+        urls = fetch_trending(
+            days=days,
+            language=language,
+            topic=topic,
+            min_stars=min_stars,
+            limit=limit,
+            token_env_var=cfg.github.token_env_var,
+        )
+    except Exception as exc:
+        typer.echo(f"Failed to fetch trending: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    if not urls:
+        typer.echo("No repos found matching criteria.", err=True)
+        raise typer.Exit(code=1)
+
+    typer.echo(f"Found {len(urls)} repos:")
+    for u in urls:
+        typer.echo(f"  {u}")
+    typer.echo("")
+
+    from repovore.pipeline import Pipeline  # noqa: PLC0415
+
+    try:
+        pipeline = Pipeline(cfg)
+        pipeline.run(urls=urls, force=force)
+    except Exception as exc:
+        typer.echo(f"Pipeline error: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    # Record that trending was updated
+    db_path = Path(cfg.output.data_dir) / "repovore.db"
+    db = Database(db_path)
+    from datetime import UTC, datetime  # noqa: PLC0415
+
+    db.set_metadata("trending_updated_at", datetime.now(UTC).isoformat())
+    typer.echo("Trending data updated successfully.")
+
+
+@app.command()
+def backfill(
+    config: Path | None = typer.Option(None, "--config", "-c", help="Path to config file"),
+) -> None:
+    """Find repos with incomplete/failed stages and re-run only what's needed."""
+    from repovore.pipeline import STAGES, Pipeline  # noqa: PLC0415
+
+    try:
+        cfg = load_config(config)
+    except Exception as exc:
+        typer.echo(f"Error loading config: {exc}", err=True)
+        raise typer.Exit(code=1)
+
+    db_path = Path(cfg.output.data_dir) / "repovore.db"
+    if not db_path.exists():
+        typer.echo("No database found. Run 'repovore process' first.", err=True)
+        raise typer.Exit(code=1)
+
+    db = Database(db_path)
+    incomplete = db.get_incomplete_repos(STAGES)
+
+    if not incomplete:
+        typer.echo("All repos are fully processed — nothing to backfill.")
+        return
+
+    typer.echo(f"Found {len(incomplete)} repo(s) needing backfill:")
+    for repo in incomplete:
+        statuses = ", ".join(
+            f"{s}={repo['stage_statuses'][s]}" for s in STAGES
+        )
+        typer.echo(f"  {repo['project_path']:50s} {statuses}")
+    typer.echo("")
+
+    # Determine which stages need running (union of all missing stages, in order)
+    stages_needed: list[str] = []
+    for stage in STAGES:
+        if any(stage in r["missing_stages"] for r in incomplete):
+            stages_needed.append(stage)
+
+    # Build URLs only for incomplete repos
+    urls = [f"https://github.com/{r['project_path']}" for r in incomplete]
+
+    typer.echo(f"Running stages {stages_needed} for {len(urls)} repo(s)...")
+    pipeline = Pipeline(cfg)
+    pipeline.run(urls=urls, stages=stages_needed)
+    typer.echo("Backfill complete.")
 
 
 @app.command()

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from pathlib import Path
 
 from fastapi import APIRouter, HTTPException, Request
@@ -21,16 +22,34 @@ def _get_cards_dir(request: Request) -> Path:
     return request.app.state.cards_dir  # type: ignore[no-any-return]
 
 
+def _trending_staleness(db: Database) -> dict:  # type: ignore[type-arg]
+    """Check if trending data is current for this ISO week."""
+    raw = db.get_metadata("trending_updated_at")
+    if not raw:
+        return {"stale": True, "updated_at": None}
+    updated_at = datetime.fromisoformat(raw)
+    now = datetime.now(UTC)
+    # Same ISO year and week number means "this week"
+    stale = updated_at.isocalendar()[:2] != now.isocalendar()[:2]
+    return {"stale": stale, "updated_at": updated_at}
+
+
 @router.get("/", response_class=HTMLResponse)
 async def cards_list_page(request: Request) -> HTMLResponse:
     """Render the cards list page."""
     db = _get_db(request)
     cards = db.list_cards(sort_by="health_score", order="desc")
+    trending_status = _trending_staleness(db)
     templates = request.app.state.templates
     return templates.TemplateResponse(
         request,
         "cards_list.html",
-        {"cards": cards, "sort": "health_score", "order": "desc"},
+        {
+            "cards": cards,
+            "sort": "health_score",
+            "order": "desc",
+            "trending": trending_status,
+        },
     )
 
 

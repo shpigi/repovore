@@ -114,6 +114,47 @@
   flex-shrink: 0;
 }
 
+/* ── Process bar ─────────────────────────────────────────────── */
+.process-bar { margin-bottom: 1rem; }
+.process-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+.process-input {
+  flex: 1;
+  margin-bottom: 0 !important;
+  width: auto !important;
+}
+.process-btn {
+  white-space: nowrap;
+  margin-bottom: 0 !important;
+  padding: 0.5rem 1.25rem !important;
+  width: auto !important;
+}
+.process-result {
+  padding: 0.65rem 1rem;
+  border-radius: 8px;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+.process-result a { font-weight: 600; }
+.process-success {
+  background: rgba(34, 197, 94, 0.1);
+  border: 1px solid rgba(34, 197, 94, 0.3);
+  color: #22c55e;
+}
+.process-skip {
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #eab308;
+}
+.process-error {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  color: #ef4444;
+}
+
 .filter-bar { margin-bottom: 1rem; }
 .filter-bar input, .filter-bar select { margin-bottom: 0; }
 

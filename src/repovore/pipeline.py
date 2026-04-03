@@ -176,6 +176,11 @@ class Pipeline:
 
         self.logger.info("Enriching %d repos", len(to_enrich))
 
+        # Warm GitHub stats endpoints so they compute in the background while
+        # we fetch other data.  By the time _enrich_one reaches _stats_get the
+        # results are usually ready, avoiding most 202 retries.
+        self.client.warm_stats([r.full_name for r in to_enrich])
+
         async def _enrich_all() -> None:
             self.client.reset_async_primitives()
             tasks = [self._enrich_one(repo) for repo in to_enrich]
@@ -410,6 +415,15 @@ class Pipeline:
             has_code_of_conduct=has_code_of_conduct,
         )
 
+        # Preserve existing LLM fields from a previous card if available
+        existing_card: RepoCard | None = None
+        card_path = self.data_dir / "cards" / f"{repo.slug}.json"
+        if card_path.exists():
+            try:
+                existing_card = load_card(card_path)
+            except Exception:
+                pass
+
         return RepoCard(
             name=repo.repo,
             owner=repo.owner,
@@ -457,6 +471,12 @@ class Pipeline:
             maintenance_level=maintenance_level,
             health_score=health_score,
             fetched_at=datetime.now(UTC),
+            # Preserve LLM fields from previous card
+            summary=existing_card.summary if existing_card else None,
+            verdict=existing_card.verdict if existing_card else None,
+            tags=existing_card.tags if existing_card else [],
+            strengths=existing_card.strengths if existing_card else [],
+            concerns=existing_card.concerns if existing_card else [],
         )
 
     def _run_summarize(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 from typing import TYPE_CHECKING
 
@@ -11,6 +12,9 @@ if TYPE_CHECKING:
     from repovore.models import RepoCard
 
 _VALID_VERDICTS = {"adopt", "evaluate", "hold", "avoid"}
+_MAX_RETRIES = 2
+
+logger = logging.getLogger(__name__)
 
 
 def summarize_card(card: RepoCard, config: LLMConfig) -> tuple[str, str, list[str], list[str], list[str]] | None:
@@ -22,13 +26,27 @@ def summarize_card(card: RepoCard, config: LLMConfig) -> tuple[str, str, list[st
     import anthropic  # lazy import — only required when llm.enabled: true
 
     client = anthropic.Anthropic(api_key=api_key)
-    msg = client.messages.create(
-        model=config.model,
-        max_tokens=config.max_tokens,
-        temperature=config.temperature,
-        messages=[{"role": "user", "content": _build_prompt(card, config.readme_max_chars)}],
-    )
-    return _parse_response(msg.content[0].text)
+    prompt = _build_prompt(card, config.readme_max_chars)
+    last_exc: Exception | None = None
+
+    for attempt in range(_MAX_RETRIES + 1):
+        msg = client.messages.create(
+            model=config.model,
+            max_tokens=config.max_tokens,
+            temperature=config.temperature,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        try:
+            return _parse_response(msg.content[0].text)
+        except (json.JSONDecodeError, KeyError, ValueError) as exc:
+            last_exc = exc
+            if attempt < _MAX_RETRIES:
+                logger.warning(
+                    "Retry %d/%d for %s/%s: %s",
+                    attempt + 1, _MAX_RETRIES, card.owner, card.name, exc,
+                )
+
+    raise last_exc  # type: ignore[misc]
 
 
 def _build_prompt(card: RepoCard, readme_max_chars: int = 8000) -> str:

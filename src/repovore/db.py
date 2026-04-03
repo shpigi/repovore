@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -43,6 +44,14 @@ CREATE TABLE IF NOT EXISTS runs (
 )
 """
 
+CREATE_METADATA = """
+CREATE TABLE IF NOT EXISTS metadata (
+    key TEXT PRIMARY KEY,
+    value TEXT,
+    updated_at TEXT
+)
+"""
+
 CREATE_CARDS = """
 CREATE TABLE IF NOT EXISTS cards (
     project_path TEXT PRIMARY KEY,
@@ -68,16 +77,18 @@ class Database:
         db_path.parent.mkdir(parents=True, exist_ok=True)
         self._conn = sqlite3.connect(str(db_path), check_same_thread=False)
         self._conn.row_factory = sqlite3.Row
+        self._lock = threading.Lock()
         self._conn.execute("PRAGMA journal_mode=WAL")
         self._conn.execute("PRAGMA foreign_keys=ON")
         self._create_tables()
 
     def _create_tables(self) -> None:
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(CREATE_REPOS)
             self._conn.execute(CREATE_PROCESSING_STATE)
             self._conn.execute(CREATE_RUNS)
             self._conn.execute(CREATE_CARDS)
+            self._conn.execute(CREATE_METADATA)
 
     def _row_to_dict(self, row: sqlite3.Row | None) -> dict | None:
         if row is None:
@@ -98,7 +109,7 @@ class Database:
         }
         columns = ", ".join(fields.keys())
         placeholders = ", ".join("?" for _ in fields)
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 f"INSERT OR IGNORE INTO repos ({columns}) VALUES ({placeholders})",
                 list(fields.values()),
@@ -111,7 +122,7 @@ class Database:
         kwargs["updated_at"] = _now()
         set_clause = ", ".join(f"{k} = ?" for k in kwargs)
         values = list(kwargs.values()) + [project_path]
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 f"UPDATE repos SET {set_clause} WHERE project_path = ?",
                 values,
@@ -143,7 +154,7 @@ class Database:
         elif status in ("done", "failed"):
             completed_at = now
 
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 """
                 INSERT INTO processing_state
@@ -190,7 +201,7 @@ class Database:
     def start_run(self, config_hash: str, stages: list[str]) -> int:
         now = _now()
         stages_json = json.dumps(stages)
-        with self._conn:
+        with self._lock, self._conn:
             cursor = self._conn.execute(
                 "INSERT INTO runs (started_at, config_hash, stages_run) VALUES (?, ?, ?)",
                 (now, config_hash, stages_json),
@@ -199,7 +210,7 @@ class Database:
 
     def complete_run(self, run_id: int) -> None:
         now = _now()
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 "UPDATE runs SET completed_at = ? WHERE id = ?",
                 (now, run_id),
@@ -223,6 +234,59 @@ class Database:
             stats[stage][status] = count
         return stats
 
+    # ── Backfill helpers ────────────────────────────────────────────────────
+
+    def get_incomplete_repos(self, all_stages: list[str]) -> list[dict]:  # type: ignore[type-arg]
+        """Return repos that have any stage not 'done', with gap details.
+
+        Each returned dict has:
+          - project_path: str
+          - missing_stages: list of stage names that are not done (in pipeline order)
+          - earliest_missing: first stage that needs work
+          - stage_statuses: dict of stage -> status for all recorded stages
+
+        Uses a single SQL query instead of per-repo lookups.
+        """
+        placeholders = ",".join("?" for _ in all_stages)
+        cursor = self._conn.execute(
+            f"""
+            SELECT r.project_path, ps.stage, ps.status
+            FROM repos r
+            LEFT JOIN processing_state ps
+                ON r.project_path = ps.project_path
+                AND ps.stage IN ({placeholders})
+            ORDER BY r.project_path
+            """,
+            all_stages,
+        )
+
+        # Build a {project_path: {stage: status}} map from the flat result set
+        repo_stages: dict[str, dict[str, str]] = {}
+        for row in cursor.fetchall():
+            path = row["project_path"]
+            if path not in repo_stages:
+                repo_stages[path] = {}
+            if row["stage"] is not None:
+                repo_stages[path][row["stage"]] = row["status"]
+
+        incomplete: list[dict] = []  # type: ignore[type-arg]
+        for path, recorded in repo_stages.items():
+            stage_statuses: dict[str, str] = {}
+            missing: list[str] = []
+            for stage in all_stages:
+                status = recorded.get(stage, "pending")
+                stage_statuses[stage] = status
+                if status != "done":
+                    missing.append(stage)
+            if missing:
+                incomplete.append({
+                    "project_path": path,
+                    "missing_stages": missing,
+                    "earliest_missing": missing[0],
+                    "stage_statuses": stage_statuses,
+                })
+        return incomplete
+
     # ── Cards index ─────────────────────────────────────────────────────────
 
     def upsert_card_index(self, card_data: dict) -> None:
@@ -237,7 +301,7 @@ class Database:
         if hasattr(last_commit, "isoformat"):
             last_commit = last_commit.isoformat()
 
-        with self._conn:
+        with self._lock, self._conn:
             self._conn.execute(
                 """
                 INSERT INTO cards
@@ -314,3 +378,28 @@ class Database:
         )
         row = cursor.fetchone()
         return self._row_to_dict(row)
+
+    # ── Metadata ────────────────────────────────────────────────────────────
+
+    def set_metadata(self, key: str, value: str) -> None:
+        """Set a metadata key-value pair."""
+        now = _now()
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO metadata (key, value, updated_at)
+                VALUES (?, ?, ?)
+                ON CONFLICT (key) DO UPDATE SET
+                    value = excluded.value,
+                    updated_at = excluded.updated_at
+                """,
+                (key, value, now),
+            )
+
+    def get_metadata(self, key: str) -> str | None:
+        """Get a metadata value by key, or None if not set."""
+        cursor = self._conn.execute(
+            "SELECT value FROM metadata WHERE key = ?", (key,)
+        )
+        row = cursor.fetchone()
+        return row["value"] if row else None

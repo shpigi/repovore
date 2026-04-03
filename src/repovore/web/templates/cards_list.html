@@ -7,6 +7,34 @@
   <p>{{ cards | length }} repositories assessed</p>
 </header>
 
+{% if trending.stale %}
+<div class="stale-banner" role="alert">
+  <span class="stale-icon">&#9888;</span>
+  <span>
+    <strong>Trending data is stale.</strong>
+    {% if trending.updated_at %}
+      Last updated {{ trending.updated_at.strftime('%b %d, %Y') }}.
+    {% else %}
+      No trending data has been fetched yet.
+    {% endif %}
+    Run <code>repovore trending</code> to refresh.
+  </span>
+</div>
+{% endif %}
+
+<div class="process-bar">
+  <form hx-post="/api/process" hx-target="#process-result" hx-swap="innerHTML"
+        hx-indicator="#process-spinner">
+    <div class="process-row">
+      <input type="text" name="url" placeholder="Add repo — paste GitHub URL or owner/repo"
+             class="process-input" required>
+      <button type="submit" class="process-btn">Process</button>
+      <span id="process-spinner" class="htmx-indicator">Processing&hellip;</span>
+    </div>
+  </form>
+  <div id="process-result"></div>
+</div>
+
 <div class="filter-bar">
   <div class="grid">
     <div>

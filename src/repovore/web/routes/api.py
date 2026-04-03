@@ -106,33 +106,126 @@ async def check_staleness(request: Request, owner: str, repo: str) -> JSONRespon
     })
 
 
-@router.post("/cards/{owner}/{repo}/refresh")
-async def refresh_card(request: Request, owner: str, repo: str) -> JSONResponse:
-    """Re-process a repo by running the pipeline as a subprocess."""
-    url = f"https://github.com/{owner}/{repo}"
+@router.post("/process")
+async def process_repo(request: Request) -> HTMLResponse:
+    """Process a new GitHub repo URL through the pipeline."""
+    form = await request.form()
+    url = str(form.get("url", "")).strip()
 
-    result = await asyncio.to_thread(
-        subprocess.run,
-        [sys.executable, "-m", "repovore", "process", "--url", url, "--force"],
-        capture_output=True,
-        text=True,
-        timeout=120,
-    )
-
-    if result.returncode != 0:
-        return JSONResponse(
-            {"error": "Pipeline failed", "stderr": result.stderr[-500:]},
-            status_code=500,
+    if not url:
+        return HTMLResponse(
+            '<div class="process-result process-error">Please enter a GitHub URL.</div>'
         )
 
-    # Reload and return the updated card
+    # Parse the URL to validate and extract owner/repo
+    from repovore.github.parser import parse_github_url
+
+    try:
+        parsed = parse_github_url(url)
+    except ValueError:
+        return HTMLResponse(
+            '<div class="process-result process-error">'
+            "Invalid GitHub URL. Use a format like "
+            "<code>https://github.com/owner/repo</code> or <code>owner/repo</code>."
+            "</div>"
+        )
+
+    owner, repo = parsed.owner, parsed.repo
+    project_path = f"{owner}/{repo}"
+    cards_dir = _get_cards_dir(request)
+    card_path = _card_path(cards_dir, owner, repo)
+
+    # Check if card already exists
+    already_exists = card_path.exists()
+    if already_exists:
+        return HTMLResponse(
+            f'<div class="process-result process-skip">'
+            f"<strong>{project_path}</strong> already exists. "
+            f'<a href="/cards/{owner}/{repo}">View card</a> or '
+            f'<a href="#" hx-post="/api/cards/{owner}/{repo}/reprocess" '
+            f'hx-target="#process-result" hx-swap="innerHTML" '
+            f'hx-indicator="#process-spinner">reprocess</a>?'
+            f"</div>"
+        )
+
+    # Run the pipeline
+    success, error = await _run_pipeline(request, owner, repo)
+
+    if not success:
+        return HTMLResponse(
+            f'<div class="process-result process-error">'
+            f"Failed to process <strong>{project_path}</strong>: {error}"
+            f"</div>"
+        )
+
+    return HTMLResponse(
+        f'<div class="process-result process-success">'
+        f"Successfully processed <strong>{project_path}</strong>! "
+        f'<a href="/cards/{owner}/{repo}">View card &rarr;</a>'
+        f"</div>"
+    )
+
+
+async def _run_pipeline(request: Request, owner: str, repo: str, force: bool = False) -> tuple[bool, str]:
+    """Run the pipeline subprocess. Returns (success, error_message)."""
+    url = f"https://github.com/{owner}/{repo}"
+    cmd = [sys.executable, "-m", "repovore.cli", "process", "--url", url]
+    if force:
+        cmd.append("--force")
+
+    try:
+        result = await asyncio.to_thread(
+            subprocess.run, cmd, capture_output=True, text=True, timeout=180,
+        )
+    except subprocess.TimeoutExpired:
+        return False, "Processing timed out."
+
+    if result.returncode != 0:
+        stderr_tail = result.stderr.strip().split("\n")[-1][:200] if result.stderr else "Unknown"
+        return False, stderr_tail
+
+    # Re-index the card
+    path = _card_path(_get_cards_dir(request), owner, repo)
+    if path.exists():
+        card = load_card(path)
+        db = _get_db(request)
+        db.upsert_card_index(card.model_dump())
+
+    return True, ""
+
+
+@router.post("/cards/{owner}/{repo}/reprocess")
+async def reprocess_card_html(request: Request, owner: str, repo: str) -> HTMLResponse:
+    """Re-process an existing repo, returning an HTML result for the process bar."""
+    project_path = f"{owner}/{repo}"
+    success, error = await _run_pipeline(request, owner, repo, force=True)
+
+    if not success:
+        return HTMLResponse(
+            f'<div class="process-result process-error">'
+            f"Failed to reprocess <strong>{project_path}</strong>: {error}"
+            f"</div>"
+        )
+
+    return HTMLResponse(
+        f'<div class="process-result process-success">'
+        f"Successfully reprocessed <strong>{project_path}</strong>! "
+        f'<a href="/cards/{owner}/{repo}">View card &rarr;</a>'
+        f"</div>"
+    )
+
+
+@router.post("/cards/{owner}/{repo}/refresh")
+async def refresh_card(request: Request, owner: str, repo: str) -> JSONResponse:
+    """Re-process a repo, returning JSON (used by the card detail page)."""
+    success, error = await _run_pipeline(request, owner, repo, force=True)
+
+    if not success:
+        return JSONResponse({"error": error}, status_code=500)
+
     path = _card_path(_get_cards_dir(request), owner, repo)
     if not path.exists():
         raise HTTPException(status_code=404, detail="Card not found after refresh")
 
-    # Re-index the updated card
     card = load_card(path)
-    db = _get_db(request)
-    db.upsert_card_index(card.model_dump())
-
     return JSONResponse(json.loads(card.model_dump_json()))
