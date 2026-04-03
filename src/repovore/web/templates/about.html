@@ -375,6 +375,10 @@
       <strong>PyGithub</strong>
       <small>GitHub API with rate limiting</small>
     </a>
+    <a href="https://ossinsight.io/" target="_blank" rel="noopener" class="tech-item">
+      <strong>OSS Insight</strong>
+      <small>Trending repos by engagement velocity</small>
+    </a>
     <a href="https://docs.anthropic.com/" target="_blank" rel="noopener" class="tech-item">
       <strong>Claude (Anthropic)</strong>
       <small>LLM summarization (optional)</small>
@@ -400,7 +404,8 @@
       <span class="qs-num">1</span>
       <div>
         <strong>Install</strong>
-        <pre><code>uv sync --extra all</code></pre>
+        <pre><code>uv sync --all-extras</code></pre>
+        <small>Installs everything: core pipeline, web UI, and LLM summarization.</small>
       </div>
     </div>
     <div class="qs-step">
@@ -414,28 +419,40 @@ export ANTHROPIC_API_KEY=sk-ant-...  # optional, for AI summaries</code></pre>
     <div class="qs-step">
       <span class="qs-num">3</span>
       <div>
-        <strong>Process individual repos</strong>
-        <pre><code>repovore process --url https://github.com/owner/repo</code></pre>
-        <small>Or from a file: <code>repovore process -i urls.txt</code></small>
+        <strong>Fetch trending repos</strong>
+        <pre><code>uv run repovore trending                          # this week's trending (default)
+uv run repovore trending --days 1                 # last 24 hours
+uv run repovore trending --days 30                # last month
+uv run repovore trending --language Python        # filter by language
+uv run repovore trending --topic machine-learning # filter by topic
+uv run repovore trending --limit 50              # fetch up to 50 repos</code></pre>
+        <small>Uses <a href="https://ossinsight.io/" target="_blank" rel="noopener">OSS Insight</a> for engagement-velocity ranking, with GitHub Search API as a fallback for topic queries. Re-run periodically to keep data fresh.</small>
       </div>
     </div>
     <div class="qs-step">
       <span class="qs-num">4</span>
       <div>
-        <strong>Or pull trending repos automatically</strong>
-        <pre><code>repovore trending                    # weekly trending (default)
-repovore trending --since daily      # daily trending
-repovore trending --since monthly    # monthly trending
-repovore trending --limit 50         # fetch up to 50 repos</code></pre>
-        <small>Scrapes GitHub's trending page and runs the full pipeline on each repo. Re-run periodically to keep your data fresh.</small>
+        <strong>Or process specific repos</strong>
+        <pre><code>uv run repovore process --url https://github.com/owner/repo
+uv run repovore process -i urls.txt               # from a file</code></pre>
       </div>
     </div>
     <div class="qs-step">
       <span class="qs-num">5</span>
       <div>
+        <strong>Re-process existing repos</strong>
+        <pre><code>uv run repovore process --all --force              # re-run full pipeline
+uv run repovore process --all --stage summarize --force  # re-run one stage
+uv run repovore process --all --from-stage score  # re-run from score onwards</code></pre>
+        <small>The <code>--all</code> flag targets every repo already in the database &mdash; no need to supply URLs again.</small>
+      </div>
+    </div>
+    <div class="qs-step">
+      <span class="qs-num">6</span>
+      <div>
         <strong>Browse</strong>
-        <pre><code>repovore serve</code></pre>
-        <small>Open <code>http://localhost:8000</code> &mdash; cards list shows a staleness banner when trending data is more than a week old.</small>
+        <pre><code>uv run repovore serve</code></pre>
+        <small>Open <code>http://localhost:8000</code> &mdash; the cards list shows a staleness banner when trending data hasn't been refreshed this week.</small>
       </div>
     </div>
   </div>
@@ -449,13 +466,13 @@ repovore trending --limit 50         # fetch up to 50 repos</code></pre>
       <table class="scorer-table">
         <thead><tr><th>Command</th><th>Description</th></tr></thead>
         <tbody>
-          <tr><td><code>repovore process</code></td><td>Fetch, enrich, score, and summarize specific repos (<code>--url</code> or <code>-i file</code>)</td></tr>
-          <tr><td><code>repovore trending</code></td><td>Scrape GitHub trending repos and run the full pipeline. Options: <code>--since</code> (daily/weekly/monthly), <code>--limit</code>, <code>--force</code></td></tr>
-          <tr><td><code>repovore status</code></td><td>Show pipeline processing status for all tracked repos</td></tr>
-          <tr><td><code>repovore show owner/repo</code></td><td>Pretty-print a single repo card in the terminal</td></tr>
-          <tr><td><code>repovore show-all</code></td><td>Pretty-print all repo cards</td></tr>
-          <tr><td><code>repovore reindex</code></td><td>Rebuild the web UI's card index from existing JSON files</td></tr>
-          <tr><td><code>repovore serve</code></td><td>Start the web UI (<code>--host</code>, <code>--port</code>)</td></tr>
+          <tr><td><code>uv run repovore trending</code></td><td>Fetch trending repos and run the full pipeline. Options: <code>--days</code>, <code>--language</code>, <code>--topic</code>, <code>--min-stars</code>, <code>--limit</code>, <code>--force</code></td></tr>
+          <tr><td><code>uv run repovore process</code></td><td>Process specific repos (<code>--url</code>, <code>-i file</code>), or re-process all with <code>--all</code>. Options: <code>--stage</code>, <code>--from-stage</code>, <code>--force</code></td></tr>
+          <tr><td><code>uv run repovore status</code></td><td>Show pipeline processing status for all tracked repos</td></tr>
+          <tr><td><code>uv run repovore show owner/repo</code></td><td>Pretty-print a single repo card in the terminal</td></tr>
+          <tr><td><code>uv run repovore show-all</code></td><td>Pretty-print all repo cards</td></tr>
+          <tr><td><code>uv run repovore reindex</code></td><td>Rebuild the web UI's card index from existing JSON files</td></tr>
+          <tr><td><code>uv run repovore serve</code></td><td>Start the web UI (<code>--host</code>, <code>--port</code>)</td></tr>
         </tbody>
       </table>
     </div>
