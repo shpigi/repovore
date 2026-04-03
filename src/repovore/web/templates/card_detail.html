@@ -110,9 +110,11 @@
       <tr>
         <td class="label">Churn (52w)</td>
         <td>
-          {% if card.code_churn_additions_52w %}<span class="text-green">+{{ "{:,}".format(card.code_churn_additions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
-          /
-          {% if card.code_churn_deletions_52w %}<span class="text-red">-{{ "{:,}".format(card.code_churn_deletions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
+          {% if card.code_churn_additions_52w is not none or card.code_churn_deletions_52w is not none %}
+            {% if card.code_churn_additions_52w is not none %}<span class="text-green">+{{ "{:,}".format(card.code_churn_additions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
+            /
+            {% if card.code_churn_deletions_52w is not none %}<span class="text-red">-{{ "{:,}".format(card.code_churn_deletions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
+          {% else %}<span class="muted">—</span>{% endif %}
         </td>
       </tr>
     </table>
