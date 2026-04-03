@@ -400,26 +400,66 @@
       <span class="qs-num">1</span>
       <div>
         <strong>Install</strong>
-        <pre><code>uv sync --extra web</code></pre>
+        <pre><code>uv sync --extra all</code></pre>
       </div>
     </div>
     <div class="qs-step">
       <span class="qs-num">2</span>
       <div>
-        <strong>Process repos</strong>
+        <strong>Set up tokens</strong>
         <pre><code>export GITHUB_TOKEN=ghp_...
-repovore process --url https://github.com/owner/repo</code></pre>
+export ANTHROPIC_API_KEY=sk-ant-...  # optional, for AI summaries</code></pre>
       </div>
     </div>
     <div class="qs-step">
       <span class="qs-num">3</span>
       <div>
+        <strong>Process individual repos</strong>
+        <pre><code>repovore process --url https://github.com/owner/repo</code></pre>
+        <small>Or from a file: <code>repovore process -i urls.txt</code></small>
+      </div>
+    </div>
+    <div class="qs-step">
+      <span class="qs-num">4</span>
+      <div>
+        <strong>Or pull trending repos automatically</strong>
+        <pre><code>repovore trending                    # weekly trending (default)
+repovore trending --since daily      # daily trending
+repovore trending --since monthly    # monthly trending
+repovore trending --limit 50         # fetch up to 50 repos</code></pre>
+        <small>Scrapes GitHub's trending page and runs the full pipeline on each repo. Re-run periodically to keep your data fresh.</small>
+      </div>
+    </div>
+    <div class="qs-step">
+      <span class="qs-num">5</span>
+      <div>
         <strong>Browse</strong>
         <pre><code>repovore serve</code></pre>
-        <small>Open <code>http://localhost:8000</code></small>
+        <small>Open <code>http://localhost:8000</code> &mdash; cards list shows a staleness banner when trending data is more than a week old.</small>
       </div>
     </div>
   </div>
+
+  <details class="accordion" style="margin-top:1.5rem">
+    <summary>
+      <span class="acc-dot" style="background:#22d3ee"></span>
+      <strong>All CLI commands</strong>
+    </summary>
+    <div class="acc-body">
+      <table class="scorer-table">
+        <thead><tr><th>Command</th><th>Description</th></tr></thead>
+        <tbody>
+          <tr><td><code>repovore process</code></td><td>Fetch, enrich, score, and summarize specific repos (<code>--url</code> or <code>-i file</code>)</td></tr>
+          <tr><td><code>repovore trending</code></td><td>Scrape GitHub trending repos and run the full pipeline. Options: <code>--since</code> (daily/weekly/monthly), <code>--limit</code>, <code>--force</code></td></tr>
+          <tr><td><code>repovore status</code></td><td>Show pipeline processing status for all tracked repos</td></tr>
+          <tr><td><code>repovore show owner/repo</code></td><td>Pretty-print a single repo card in the terminal</td></tr>
+          <tr><td><code>repovore show-all</code></td><td>Pretty-print all repo cards</td></tr>
+          <tr><td><code>repovore reindex</code></td><td>Rebuild the web UI's card index from existing JSON files</td></tr>
+          <tr><td><code>repovore serve</code></td><td>Start the web UI (<code>--host</code>, <code>--port</code>)</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </details>
 </section>
 
 {% endblock %}
