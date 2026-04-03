@@ -176,13 +176,56 @@
 .llm-strength { color: var(--health-high); }
 .llm-concern  { color: var(--health-low); }
 
-/* ── Contributors ────────────────────────────────────────────── */
+/* ── Avatars & contributors ──────────────────────────────────── */
 .contributors { margin-top: 0.75rem; }
-.contributor {
-  display: inline-block;
-  margin-right: 0.75rem;
-  font-size: 0.85rem;
+
+.avatar-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 0.5rem;
 }
+
+.avatar-link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  text-decoration: none;
+  color: inherit;
+  width: 64px;
+}
+.avatar-link:hover .avatar { border-color: var(--pico-primary); }
+
+.avatar {
+  border-radius: 50%;
+  border: 2px solid rgba(255,255,255,0.15);
+  transition: border-color 0.15s;
+  display: block;
+}
+.avatar-lg { width: 64px; height: 64px; }
+
+.avatar-label {
+  font-size: 0.7rem;
+  text-align: center;
+  word-break: break-all;
+  line-height: 1.3;
+}
+
+/* ── Owner row ────────────────────────────────────────────────── */
+.owner-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+.owner-avatar-link { flex-shrink: 0; width: auto; }
+.owner-name-link {
+  font-size: 1.1rem;
+  font-weight: 600;
+  text-decoration: none;
+  margin-right: 0.5rem;
+}
+.owner-name-link:hover { text-decoration: underline; }
 
 /* ── Release tag ─────────────────────────────────────────────── */
 .release-tag { font-family: monospace; }

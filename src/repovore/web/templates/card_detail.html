@@ -119,10 +119,15 @@
 
     {% if card.top_contributors %}
     <div class="contributors">
-      <small class="label">Top contributors</small><br>
-      {% for c in card.top_contributors %}
-      <span class="contributor">@{{ c.login }} <small class="muted">{{ "%.0f" | format(c.pct | float) }}%</small></span>
-      {% endfor %}
+      <small class="label">Top contributors</small>
+      <div class="avatar-row">
+        {% for c in card.top_contributors %}
+        <a href="https://github.com/{{ c.login }}" target="_blank" rel="noopener" class="avatar-link" title="@{{ c.login }} — {{ '%.0f' | format(c.pct | float) }}%">
+          <img src="https://github.com/{{ c.login }}.png?size=48" alt="@{{ c.login }}" class="avatar" width="40" height="40">
+          <span class="avatar-label">@{{ c.login }}<br><small class="muted">{{ "%.0f" | format(c.pct | float) }}%</small></span>
+        </a>
+        {% endfor %}
+      </div>
     </div>
     {% endif %}
   </article>
@@ -175,15 +180,23 @@
 
 {# ── Owner ────────────────────────────────────────────────────── #}
 <article>
-  <header><strong>Owner &mdash; {{ card.owner }}</strong></header>
-  <table class="detail-table">
-    <tr><td class="label">Type</td><td>{{ card.owner_type or "unknown" }}</td></tr>
-    <tr><td class="label">Followers</td><td>{{ opt(card.owner_followers, ",") }}</td></tr>
-    <tr><td class="label">Public repos</td><td>{{ opt(card.owner_public_repos) }}</td></tr>
-    {% if card.owner_account_age_days is not none %}
-    <tr><td class="label">Account age</td><td>{{ "%.1f" | format(card.owner_account_age_days / 365) }} years</td></tr>
-    {% endif %}
-  </table>
+  <header><strong>Owner</strong></header>
+  <div class="owner-row">
+    <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="avatar-link owner-avatar-link">
+      <img src="https://github.com/{{ card.owner }}.png?size=80" alt="{{ card.owner }}" class="avatar avatar-lg" width="64" height="64">
+    </a>
+    <div>
+      <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="owner-name-link">{{ card.owner }}</a>
+      {% if card.owner_type %}<span class="pill pill-unknown" style="font-size:0.7rem">{{ card.owner_type }}</span>{% endif %}
+      <table class="detail-table" style="margin-top:0.4rem">
+        <tr><td class="label">Followers</td><td>{{ opt(card.owner_followers, ",") }}</td>
+            <td class="label">Public repos</td><td>{{ opt(card.owner_public_repos) }}</td></tr>
+        {% if card.owner_account_age_days is not none %}
+        <tr><td class="label">Account age</td><td colspan="3">{{ "%.1f" | format(card.owner_account_age_days / 365) }} years</td></tr>
+        {% endif %}
+      </table>
+    </div>
+  </div>
 </article>
 
 {# ── Languages ────────────────────────────────────────────────── #}
