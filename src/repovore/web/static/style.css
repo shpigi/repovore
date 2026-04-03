@@ -90,6 +90,30 @@
   background: rgba(255,255,255,0.1);
 }
 
+/* ── Stale banner ────────────────────────────────────────────── */
+.stale-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-radius: 8px;
+  background: rgba(234, 179, 8, 0.1);
+  border: 1px solid rgba(234, 179, 8, 0.3);
+  color: #eab308;
+  font-size: 0.9rem;
+}
+.stale-banner code {
+  background: rgba(255, 255, 255, 0.08);
+  padding: 0.1rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.82rem;
+}
+.stale-icon {
+  font-size: 1.3rem;
+  flex-shrink: 0;
+}
+
 .filter-bar { margin-bottom: 1rem; }
 .filter-bar input, .filter-bar select { margin-bottom: 0; }
 
@@ -743,6 +767,14 @@
   border: 1px solid var(--border);
   border-radius: 8px;
   padding: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s, background 0.15s;
+  display: block;
+}
+.tech-item:hover {
+  border-color: var(--pico-primary);
+  background: var(--surface-2);
 }
 .tech-item strong { font-size: 0.9rem; display: block; }
 .tech-item small { font-size: 0.78rem; opacity: 0.6; }
