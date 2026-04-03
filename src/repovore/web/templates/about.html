@@ -1,0 +1,425 @@
+{% extends "base.html" %}
+{% block title %}About — Repovore{% endblock %}
+
+{% block content %}
+
+{# ════════════════════════════════════════════════════════════════
+   HERO — What is this?
+   ════════════════════════════════════════════════════════════════ #}
+<section class="about-hero">
+  <div class="about-hero-text">
+    <h1>Repovore</h1>
+    <p class="about-tagline">GitHub repository quality assessment, at a glance.</p>
+    <p class="about-lead">
+      Repovore fetches metadata from any public GitHub repository, computes a
+      composite health score from dozens of signals, and produces a structured
+      "card" — a snapshot of a repo's quality, activity, community, and maintenance posture.
+    </p>
+    <div class="about-cta-row">
+      <a href="/" role="button">Browse Cards</a>
+      <a href="#how-it-works" role="button" class="outline">See How It Works</a>
+    </div>
+  </div>
+  <div class="about-hero-graphic">
+    {# Abstract card icon #}
+    <svg viewBox="0 0 200 200" class="hero-icon" aria-hidden="true">
+      <rect x="20" y="30" width="160" height="140" rx="16" fill="none" stroke="currentColor" stroke-width="2" opacity="0.15"/>
+      <rect x="30" y="40" width="140" height="120" rx="12" fill="none" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+      <rect x="40" y="50" width="120" height="100" rx="8" fill="var(--surface-2)" stroke="var(--health-high)" stroke-width="2"/>
+      <circle cx="70" cy="82" r="16" fill="none" stroke="var(--health-high)" stroke-width="3" stroke-dasharray="80 100" stroke-linecap="round" transform="rotate(-90 70 82)"/>
+      <text x="70" y="87" text-anchor="middle" fill="var(--health-high)" font-size="12" font-weight="800">82</text>
+      <rect x="98" y="70" width="50" height="6" rx="3" fill="var(--health-high)" opacity="0.6"/>
+      <rect x="98" y="82" width="35" height="6" rx="3" fill="currentColor" opacity="0.15"/>
+      <rect x="98" y="94" width="42" height="6" rx="3" fill="currentColor" opacity="0.1"/>
+      <rect x="52" y="116" width="18" height="18" rx="4" fill="var(--verdict-adopt)" opacity="0.7"/>
+      <rect x="76" y="116" width="18" height="18" rx="4" fill="var(--health-mid)" opacity="0.5"/>
+      <rect x="100" y="116" width="18" height="18" rx="4" fill="currentColor" opacity="0.15"/>
+      <rect x="124" y="116" width="18" height="18" rx="4" fill="currentColor" opacity="0.1"/>
+    </svg>
+  </div>
+</section>
+
+{# ════════════════════════════════════════════════════════════════
+   USE CASES — Who is this for?
+   ════════════════════════════════════════════════════════════════ #}
+<section class="about-section">
+  <h2>What can you do with it?</h2>
+  <div class="use-case-grid">
+    <div class="use-case-card">
+      <div class="uc-icon">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--health-high)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="10"/></svg>
+      </div>
+      <h3>Evaluate dependencies</h3>
+      <p>Before adopting a library, check its health score, maintenance level, bus factor, and security posture — all in one card.</p>
+    </div>
+    <div class="use-case-card">
+      <div class="uc-icon">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="var(--verdict-evaluate)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+      </div>
+      <h3>Track your portfolio</h3>
+      <p>Feed a list of repos you care about and monitor their health over time. Re-process to catch regressions.</p>
+    </div>
+    <div class="use-case-card">
+      <div class="uc-icon">
+        <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#818cf8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      </div>
+      <h3>Discover quality projects</h3>
+      <p>Sort by health score, filter by verdict. Find well-maintained, actively-developed repos with strong community signals.</p>
+    </div>
+  </div>
+</section>
+
+{# ════════════════════════════════════════════════════════════════
+   HOW IT WORKS — Pipeline diagram
+   ════════════════════════════════════════════════════════════════ #}
+<section class="about-section" id="how-it-works">
+  <h2>How it works</h2>
+  <p>Repovore runs a four-stage pipeline on each repository. Each stage is independently resumable — if enrichment fails on one repo, it picks up where it left off.</p>
+
+  {# Pipeline diagram — SVG #}
+  <div class="pipeline-diagram">
+    <svg viewBox="0 0 800 120" class="pipeline-svg" aria-label="Pipeline: Fetch, Enrich, Score, Summarize">
+      {# Stage 1: Fetch #}
+      <rect x="10" y="20" width="160" height="80" rx="12" fill="var(--surface-2)" stroke="#22d3ee" stroke-width="2"/>
+      <text x="90" y="50" text-anchor="middle" fill="#22d3ee" font-size="14" font-weight="700">FETCH</text>
+      <text x="90" y="70" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.6">Core metadata</text>
+      <text x="90" y="84" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.4">1 API call</text>
+
+      {# Arrow 1 #}
+      <line x1="175" y1="60" x2="210" y2="60" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+      <polygon points="210,55 220,60 210,65" fill="currentColor" opacity="0.3"/>
+
+      {# Stage 2: Enrich #}
+      <rect x="220" y="20" width="160" height="80" rx="12" fill="var(--surface-2)" stroke="#818cf8" stroke-width="2"/>
+      <text x="300" y="50" text-anchor="middle" fill="#818cf8" font-size="14" font-weight="700">ENRICH</text>
+      <text x="300" y="70" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.6">14 parallel API calls</text>
+      <text x="300" y="84" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.4">Languages, PRs, CI, ...</text>
+
+      {# Arrow 2 #}
+      <line x1="385" y1="60" x2="420" y2="60" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+      <polygon points="420,55 430,60 420,65" fill="currentColor" opacity="0.3"/>
+
+      {# Stage 3: Score #}
+      <rect x="430" y="20" width="160" height="80" rx="12" fill="var(--surface-2)" stroke="var(--health-high)" stroke-width="2"/>
+      <text x="510" y="50" text-anchor="middle" fill="var(--health-high)" font-size="14" font-weight="700">SCORE</text>
+      <text x="510" y="70" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.6">4 sub-scorers</text>
+      <text x="510" y="84" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.4">Health 0-100</text>
+
+      {# Arrow 3 #}
+      <line x1="595" y1="60" x2="630" y2="60" stroke="currentColor" stroke-width="1.5" opacity="0.3"/>
+      <polygon points="630,55 640,60 630,65" fill="currentColor" opacity="0.3"/>
+
+      {# Stage 4: Summarize #}
+      <rect x="640" y="20" width="150" height="80" rx="12" fill="var(--surface-2)" stroke="#f472b6" stroke-width="2"/>
+      <text x="715" y="50" text-anchor="middle" fill="#f472b6" font-size="14" font-weight="700">SUMMARIZE</text>
+      <text x="715" y="70" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.6">Claude LLM</text>
+      <text x="715" y="84" text-anchor="middle" fill="currentColor" font-size="10" opacity="0.4">Verdict + analysis</text>
+    </svg>
+  </div>
+
+  {# Collapsible deep-dive per stage #}
+  <div class="accordion-group">
+
+    <details class="accordion">
+      <summary>
+        <span class="acc-dot" style="background:#22d3ee"></span>
+        <strong>Fetch</strong> — Core repository metadata
+      </summary>
+      <div class="acc-body">
+        <p>A single GitHub API call retrieves the foundational data: name, description, stars, forks, license, topics, creation date, and last push time. This is stored as raw JSON and used as the seed for enrichment.</p>
+        <div class="acc-detail-grid">
+          <div class="acc-detail-item"><span class="acc-num">1</span> API call</div>
+          <div class="acc-detail-item"><span class="acc-num">13</span> fields captured</div>
+          <div class="acc-detail-item">Stored in <code>data/raw/</code></div>
+        </div>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>
+        <span class="acc-dot" style="background:#818cf8"></span>
+        <strong>Enrich</strong> — Deep data collection
+      </summary>
+      <div class="acc-body">
+        <p>14 API calls run in parallel per repo, each fetching a different dimension of project health:</p>
+        <div class="enrich-grid">
+          <span class="enrich-chip">Languages</span>
+          <span class="enrich-chip">Contributors (top 100)</span>
+          <span class="enrich-chip">Commits (90d)</span>
+          <span class="enrich-chip">Pull requests</span>
+          <span class="enrich-chip">Releases</span>
+          <span class="enrich-chip">Root contents</span>
+          <span class="enrich-chip">Issue stats</span>
+          <span class="enrich-chip">Community profile</span>
+          <span class="enrich-chip">Dependabot alerts</span>
+          <span class="enrich-chip">Participation stats</span>
+          <span class="enrich-chip">Code frequency</span>
+          <span class="enrich-chip">CI/CD runs</span>
+          <span class="enrich-chip">README content</span>
+          <span class="enrich-chip">Owner profile</span>
+        </div>
+        <p class="acc-note">Rate-limited to 8 requests/second with exponential backoff (2s-60s) and 3 retries. Max 5 concurrent requests.</p>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>
+        <span class="acc-dot" style="background:var(--health-high)"></span>
+        <strong>Score</strong> — Health score computation
+      </summary>
+      <div class="acc-body">
+        <p>Four independent sub-scorers (each 0-100) are weighted and combined into a single health score:</p>
+
+        {# Sub-scorer weight diagram #}
+        <div class="weight-bars">
+          <div class="weight-row">
+            <span class="weight-label">Activity</span>
+            <div class="weight-bar-bg"><div class="weight-bar-fill" style="width:30%;background:#22d3ee"></div></div>
+            <span class="weight-pct">30%</span>
+          </div>
+          <div class="weight-row">
+            <span class="weight-label">Quality</span>
+            <div class="weight-bar-bg"><div class="weight-bar-fill" style="width:30%;background:var(--health-high)"></div></div>
+            <span class="weight-pct">30%</span>
+          </div>
+          <div class="weight-row">
+            <span class="weight-label">Community</span>
+            <div class="weight-bar-bg"><div class="weight-bar-fill" style="width:20%;background:#818cf8"></div></div>
+            <span class="weight-pct">20%</span>
+          </div>
+          <div class="weight-row">
+            <span class="weight-label">Maintenance</span>
+            <div class="weight-bar-bg"><div class="weight-bar-fill" style="width:20%;background:#f472b6"></div></div>
+            <span class="weight-pct">20%</span>
+          </div>
+        </div>
+
+        {# Nested accordions for each sub-scorer #}
+        <details class="accordion accordion-nested">
+          <summary>Activity sub-scorer</summary>
+          <div class="acc-body">
+            <table class="scorer-table">
+              <thead><tr><th>Signal</th><th>Max</th><th>Thresholds</th></tr></thead>
+              <tbody>
+                <tr><td>Commit recency</td><td>40 pts</td><td>&#8804;7d: 40 &middot; 8-30d: 35 &middot; 31-90d: 25 &middot; 91-180d: 15 &middot; 181-365d: 5</td></tr>
+                <tr><td>Commit frequency (90d)</td><td>35 pts</td><td>&#8805;100: 35 &middot; 50-99: 28 &middot; 20-49: 20 &middot; 5-19: 12 &middot; 1-4: 5</td></tr>
+                <tr><td>Release cadence</td><td>25 pts</td><td>&#8804;30d: 25 &middot; 31-90d: 20 &middot; 91-180d: 12 &middot; 181-365d: 5</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="accordion accordion-nested">
+          <summary>Community sub-scorer</summary>
+          <div class="acc-body">
+            <table class="scorer-table">
+              <thead><tr><th>Signal</th><th>Max</th><th>Formula / Thresholds</th></tr></thead>
+              <tbody>
+                <tr><td>Stars</td><td>30 pts</td><td>min(30, log<sub>10</sub>(stars) &times; 10)</td></tr>
+                <tr><td>Forks</td><td>25 pts</td><td>min(25, log<sub>10</sub>(forks) &times; 10)</td></tr>
+                <tr><td>Contributors</td><td>25 pts</td><td>&#8805;20: 25 &middot; 10-19: 20 &middot; 5-9: 15 &middot; 2-4: 8</td></tr>
+                <tr><td>Issue response time</td><td>20 pts</td><td>&#8804;24h: 20 &middot; 25-72h: 15 &middot; 73-168h: 8 &middot; 169-720h: 3</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="accordion accordion-nested">
+          <summary>Quality sub-scorer</summary>
+          <div class="acc-body">
+            <table class="scorer-table">
+              <thead><tr><th>Signal</th><th>Max</th><th>Details</th></tr></thead>
+              <tbody>
+                <tr><td>Community health %</td><td>60 pts</td><td>GitHub's metric scaled (fallback: presence checks for README, LICENSE, CI, etc.)</td></tr>
+                <tr><td>CI success rate</td><td>15 pts</td><td>&#8805;90%: 15 &middot; 70-89%: 10 &middot; 50-69%: 5</td></tr>
+                <tr><td>Bus factor (top 3)</td><td>25 pts</td><td>&#8804;50%: 25 &middot; 51-70%: 18 &middot; 71-85%: 10 &middot; 86-95%: 5</td></tr>
+                <tr><td>Dependabot</td><td>&minus;25 pts</td><td>Critical: &minus;5 each (max &minus;15) &middot; High: &minus;2 each (max &minus;10)</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </details>
+
+        <details class="accordion accordion-nested">
+          <summary>Maintenance level</summary>
+          <div class="acc-body">
+            <div class="maint-levels">
+              <div class="ml-row"><span class="pill pill-active">active</span> <span>Last commit &#8804;30d + recent release or open PRs &rarr; <strong>100 pts</strong></span></div>
+              <div class="ml-row"><span class="pill pill-maintained">maintained</span> <span>Last commit &#8804;90d &rarr; <strong>70 pts</strong></span></div>
+              <div class="ml-row"><span class="pill pill-minimal">minimal</span> <span>Last commit &#8804;365d &rarr; <strong>30 pts</strong></span></div>
+              <div class="ml-row"><span class="pill pill-abandoned">abandoned</span> <span>Archived or &gt;365d since commit &rarr; <strong>0 pts</strong></span></div>
+            </div>
+          </div>
+        </details>
+      </div>
+    </details>
+
+    <details class="accordion">
+      <summary>
+        <span class="acc-dot" style="background:#f472b6"></span>
+        <strong>Summarize</strong> — AI-powered analysis
+      </summary>
+      <div class="acc-body">
+        <p>An LLM (Claude) reads the scored card data plus the README and produces a structured editorial assessment:</p>
+        <div class="llm-output-grid">
+          <div class="llm-out-item">
+            <strong>Verdict</strong>
+            <div class="llm-out-pills">
+              <span class="pill pill-verdict-adopt">adopt</span>
+              <span class="pill pill-verdict-evaluate">evaluate</span>
+              <span class="pill pill-verdict-hold">hold</span>
+              <span class="pill pill-verdict-avoid">avoid</span>
+            </div>
+          </div>
+          <div class="llm-out-item">
+            <strong>Summary</strong>
+            <p class="acc-note">3-5 sentence narrative with an opinionated take</p>
+          </div>
+          <div class="llm-out-item">
+            <strong>Strengths & Concerns</strong>
+            <p class="acc-note">2-3 concise phrases each, highlighting key positives and risks</p>
+          </div>
+          <div class="llm-out-item">
+            <strong>Tags</strong>
+            <p class="acc-note">5-10 domain/technology/use-case tags for categorization</p>
+          </div>
+        </div>
+        <p class="acc-note">Model: Claude Haiku 4.5 &middot; 700 token limit &middot; README truncated to 15,000 chars. Optional — can be disabled in config.</p>
+      </div>
+    </details>
+
+  </div>
+</section>
+
+{# ════════════════════════════════════════════════════════════════
+   THE CARD — What's in a RepoCard?
+   ════════════════════════════════════════════════════════════════ #}
+<section class="about-section">
+  <h2>Anatomy of a card</h2>
+  <p>Each card captures <strong>45+ fields</strong> across 9 categories. Here's what goes into one:</p>
+
+  <div class="anatomy-grid">
+    <div class="anatomy-item">
+      <div class="anatomy-icon" style="color:#22d3ee">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="4"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="13" y2="13"/></svg>
+      </div>
+      <strong>Core</strong>
+      <span class="anatomy-count">9 fields</span>
+      <small>Name, stars, forks, languages, license, topics</small>
+    </div>
+    <div class="anatomy-item">
+      <div class="anatomy-icon" style="color:var(--health-high)">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      </div>
+      <strong>Activity</strong>
+      <span class="anatomy-count">7 fields</span>
+      <small>Commits, PRs, issues, releases</small>
+    </div>
+    <div class="anatomy-item">
+      <div class="anatomy-icon" style="color:#818cf8">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <strong>Quality</strong>
+      <span class="anatomy-count">10 fields</span>
+      <small>README, CI, license, bus factor, vulnerabilities</small>
+    </div>
+    <div class="anatomy-item">
+      <div class="anatomy-icon" style="color:#f472b6">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+      </div>
+      <strong>Community</strong>
+      <span class="anatomy-count">8 fields</span>
+      <small>Health %, code churn, CI pass rate, owner commits</small>
+    </div>
+    <div class="anatomy-item">
+      <div class="anatomy-icon" style="color:var(--verdict-evaluate)">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+      </div>
+      <strong>Owner</strong>
+      <span class="anatomy-count">4 fields</span>
+      <small>Type, followers, repos, account age</small>
+    </div>
+    <div class="anatomy-item">
+      <div class="anatomy-icon" style="color:#fb923c">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z"/></svg>
+      </div>
+      <strong>AI Analysis</strong>
+      <span class="anatomy-count">5 fields</span>
+      <small>Summary, verdict, tags, strengths, concerns</small>
+    </div>
+  </div>
+</section>
+
+{# ════════════════════════════════════════════════════════════════
+   TECH STACK
+   ════════════════════════════════════════════════════════════════ #}
+<section class="about-section">
+  <h2>Built with</h2>
+  <div class="tech-grid">
+    <div class="tech-item">
+      <strong>Python 3.11+</strong>
+      <small>Type hints, asyncio, Pydantic v2</small>
+    </div>
+    <div class="tech-item">
+      <strong>FastAPI</strong>
+      <small>Web server + JSON API</small>
+    </div>
+    <div class="tech-item">
+      <strong>Jinja2 + htmx</strong>
+      <small>Server-rendered UI, no JS build step</small>
+    </div>
+    <div class="tech-item">
+      <strong>SQLite (WAL)</strong>
+      <small>Pipeline state + cards index</small>
+    </div>
+    <div class="tech-item">
+      <strong>PyGithub</strong>
+      <small>GitHub API with rate limiting</small>
+    </div>
+    <div class="tech-item">
+      <strong>Claude (Anthropic)</strong>
+      <small>LLM summarization (optional)</small>
+    </div>
+    <div class="tech-item">
+      <strong>Pico CSS</strong>
+      <small>Minimal classless stylesheet</small>
+    </div>
+    <div class="tech-item">
+      <strong>Typer</strong>
+      <small>CLI interface</small>
+    </div>
+  </div>
+</section>
+
+{# ════════════════════════════════════════════════════════════════
+   QUICK START
+   ════════════════════════════════════════════════════════════════ #}
+<section class="about-section">
+  <h2>Quick start</h2>
+  <div class="quickstart-steps">
+    <div class="qs-step">
+      <span class="qs-num">1</span>
+      <div>
+        <strong>Install</strong>
+        <pre><code>uv sync --extra web</code></pre>
+      </div>
+    </div>
+    <div class="qs-step">
+      <span class="qs-num">2</span>
+      <div>
+        <strong>Process repos</strong>
+        <pre><code>export GITHUB_TOKEN=ghp_...
+repovore process --url https://github.com/owner/repo</code></pre>
+      </div>
+    </div>
+    <div class="qs-step">
+      <span class="qs-num">3</span>
+      <div>
+        <strong>Browse</strong>
+        <pre><code>repovore serve</code></pre>
+        <small>Open <code>http://localhost:8000</code></small>
+      </div>
+    </div>
+  </div>
+</section>
+
+{% endblock %}

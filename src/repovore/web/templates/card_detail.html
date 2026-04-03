@@ -6,8 +6,12 @@
 {% endmacro %}
 
 {% macro opt(val, fmt="") %}
-{% if val is none %}<span class="muted">unknown</span>{% elif fmt == "," %}{{ "{:,}".format(val) }}{% elif fmt == ".0f" %}{{ "%.0f" | format(val) }}{% elif fmt == ".1f" %}{{ "%.1f" | format(val) }}{% else %}{{ val }}{% endif %}
+{% if val is none %}<span class="muted">—</span>{% elif fmt == "," %}{{ "{:,}".format(val) }}{% elif fmt == ".0f" %}{{ "%.0f" | format(val) }}{% elif fmt == ".1f" %}{{ "%.1f" | format(val) }}{% else %}{{ val }}{% endif %}
 {% endmacro %}
+
+{% set score = card.health_score %}
+{% set score_class = "high" if score >= 75 else "mid" if score >= 50 else "low" %}
+{% set ml = card.maintenance_level %}
 
 {% block content %}
 <nav aria-label="breadcrumb">
@@ -17,66 +21,151 @@
   </ul>
 </nav>
 
-{# ── Header ─────────────────────────────────────────────────── #}
-<article class="card-header-article">
-  <header>
-    <hgroup>
-      <h1>
-        <span class="repo-owner">{{ card.owner }}/</span>{{ card.name }}
+{# ════════════════════════════════════════════════════════════════
+   HERO — Identity + Score at a glance
+   ════════════════════════════════════════════════════════════════ #}
+<section class="hero">
+  <div class="hero-left">
+    <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="hero-avatar-link">
+      <img src="https://github.com/{{ card.owner }}.png?size=96" alt="{{ card.owner }}" class="avatar avatar-hero">
+    </a>
+    <div class="hero-identity">
+      <h1 class="hero-title">
+        <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="repo-owner-link">{{ card.owner }}</a>
+        <span class="hero-slash">/</span>
+        <a href="{{ card.url }}" target="_blank" rel="noopener" class="repo-name-link">{{ card.name }}</a>
         {% if card.archived %}<span class="badge badge-health-low">ARCHIVED</span>{% endif %}
       </h1>
-      {% if card.description %}<p>{{ card.description }}</p>{% endif %}
-    </hgroup>
-  </header>
-
-  <div class="header-meta">
-    <span class="stars-display">{{ "{:,}".format(card.stars) }}</span>
-    <span class="forks-display">{{ "{:,}".format(card.forks) }}</span>
-    {% if card.license %}<span class="license-display">{{ card.license }}</span>{% endif %}
-    {% if card.repo_age_days is not none %}
-    <span class="muted">{{ "%.1f" | format(card.repo_age_days / 365) }}y old</span>
-    {% endif %}
-    {% if card.stars_per_year is not none %}
-    <span class="muted">{{ "{:,.0f}".format(card.stars_per_year) }} stars/yr</span>
-    {% endif %}
+      {% if card.description %}<p class="hero-desc">{{ card.description }}</p>{% endif %}
+      <div class="hero-stats">
+        <span class="stat-chip">{{ "{:,}".format(card.stars) }} stars</span>
+        <span class="stat-chip">{{ "{:,}".format(card.forks) }} forks</span>
+        {% if card.license %}<span class="stat-chip">{{ card.license }}</span>{% endif %}
+        {% if card.owner_type %}<span class="stat-chip">{{ card.owner_type }}</span>{% endif %}
+        {% if card.repo_age_days is not none %}<span class="stat-chip muted">{{ "%.1f" | format(card.repo_age_days / 365) }}y old</span>{% endif %}
+        {% if card.stars_per_year is not none %}<span class="stat-chip muted">{{ "{:,.0f}".format(card.stars_per_year) }}/yr</span>{% endif %}
+      </div>
+      {% set display_tags = card.tags if card.tags else card.topics %}
+      {% if display_tags %}
+      <div class="tags">
+        {% for t in display_tags[:10] %}
+        <span class="tag">#{{ t }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
   </div>
 
-  {% set display_tags = card.tags if card.tags else card.topics %}
-  {% if display_tags %}
-  <div class="tags">
-    {% for t in display_tags[:12] %}
-    <span class="tag">#{{ t }}</span>
+  {# ── Score ring ──────────────────────────────────────────── #}
+  <div class="hero-right">
+    <div class="score-ring score-ring-{{ score_class }}">
+      <svg viewBox="0 0 120 120" class="ring-svg">
+        <circle cx="60" cy="60" r="52" class="ring-bg"/>
+        <circle cx="60" cy="60" r="52" class="ring-fg"
+                style="stroke-dasharray: {{ (score / 100 * 326.7) | round(1) }} 326.7"
+                stroke-linecap="round"/>
+      </svg>
+      <div class="ring-label">
+        <span class="ring-value">{{ "%.0f" | format(score) }}</span>
+        <span class="ring-caption">health</span>
+      </div>
+    </div>
+    <div class="hero-pills">
+      <span class="pill pill-{{ ml }}">{{ ml }}</span>
+      {% set v = card.verdict %}
+      {% if v %}
+      <span class="pill pill-verdict-{{ v }}">{{ v }}</span>
+      {% endif %}
+    </div>
+  </div>
+</section>
+
+{# ── Compact language bar (inline, right under the hero) ──── #}
+{% if card.languages %}
+{% set langs = card.languages.items() | sort(attribute='1', reverse=true) | list %}
+<div class="lang-strip">
+  <div class="lang-strip-bar">
+    {% for lang, pct in langs if pct >= 1.0 %}
+    <div class="lang-strip-seg lang-color-{{ loop.index0 % 8 }}" style="width:{{ pct }}%" title="{{ lang }} {{ '%.1f' | format(pct) }}%"></div>
     {% endfor %}
   </div>
-  {% endif %}
-
-  <a href="{{ card.url }}" target="_blank" rel="noopener" class="repo-link">{{ card.url }}</a>
-</article>
-
-{# ── Score Banner ────────────────────────────────────────────── #}
-{% set score = card.health_score %}
-{% set score_class = "high" if score >= 75 else "mid" if score >= 50 else "low" %}
-{% set ml = card.maintenance_level %}
-
-<div class="score-banner grid">
-  <div class="score-box">
-    <div class="score-label">HEALTH SCORE</div>
-    <div class="score-value badge-health-{{ score_class }}">{{ "%.0f" | format(score) }}<span class="score-max"> / 100</span></div>
-  </div>
-  <div class="score-box">
-    <div class="score-label">GH COMMUNITY</div>
-    <div class="score-value">{% if card.community_health_pct is not none %}{{ card.community_health_pct }}%{% else %}&mdash;{% endif %}</div>
-  </div>
-  <div class="score-box">
-    <div class="score-label">MAINTENANCE</div>
-    <div class="score-value"><span class="pill pill-{{ ml }}">{{ ml | upper }}</span></div>
+  <div class="lang-strip-labels">
+    {% for lang, pct in langs if pct >= 1.0 %}
+    <span class="lang-strip-label"><span class="lang-dot lang-color-{{ loop.index0 % 8 }}"></span>{{ lang }} {{ "%.1f" | format(pct) }}%</span>
+    {% endfor %}
   </div>
 </div>
+{% endif %}
 
-{# ── Activity & Quality ─────────────────────────────────────── #}
-<div class="grid">
+{# ════════════════════════════════════════════════════════════════
+   LLM VERDICT — Most actionable insight, surface it early
+   ════════════════════════════════════════════════════════════════ #}
+{% if card.summary or card.verdict or card.strengths or card.concerns %}
+<article class="llm-card">
+  <div class="llm-header">
+    <strong>AI Assessment</strong>
+    {% if card.verdict %}
+    <span class="pill pill-verdict-{{ card.verdict }} verdict-large">{{ card.verdict | upper }}</span>
+    {% endif %}
+  </div>
 
-  <article>
+  {% if card.summary %}
+  <p class="llm-summary">{{ card.summary }}</p>
+  {% endif %}
+
+  {% if card.strengths or card.concerns %}
+  <div class="llm-columns">
+    {% if card.strengths %}
+    <div class="llm-col">
+      <div class="llm-col-title text-green">Strengths</div>
+      {% for s in card.strengths %}
+      <div class="llm-item llm-strength"><span class="check-yes">&#10004;</span> {{ s }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% if card.concerns %}
+    <div class="llm-col">
+      <div class="llm-col-title text-red">Concerns</div>
+      {% for s in card.concerns %}
+      <div class="llm-item llm-concern"><span class="check-no">&#10008;</span> {{ s }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+</article>
+{% endif %}
+
+{# ════════════════════════════════════════════════════════════════
+   METRICS GRID — 3-column: Scores, Activity, Quality
+   ════════════════════════════════════════════════════════════════ #}
+<div class="metrics-grid">
+
+  {# ── Column 1: Key Scores ──────────────────────────────────── #}
+  <article class="metric-card">
+    <header><strong>Scores</strong></header>
+    <div class="kpi-grid">
+      <div class="kpi">
+        <div class="kpi-value badge-health-{{ score_class }}">{{ "%.0f" | format(score) }}</div>
+        <div class="kpi-label">Health</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">{% if card.community_health_pct is not none %}{{ card.community_health_pct }}{% else %}&mdash;{% endif %}</div>
+        <div class="kpi-label">Community %</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">{% if card.bus_factor_top3_pct is not none %}{{ "%.0f" | format(card.bus_factor_top3_pct) }}{% else %}&mdash;{% endif %}</div>
+        <div class="kpi-label">Bus factor %</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">{% if card.ci_success_rate is not none %}{{ "%.0f" | format(card.ci_success_rate) }}{% else %}&mdash;{% endif %}</div>
+        <div class="kpi-label">CI pass %</div>
+      </div>
+    </div>
+  </article>
+
+  {# ── Column 2: Activity ────────────────────────────────────── #}
+  <article class="metric-card">
     <header><strong>Activity</strong></header>
     <table class="detail-table">
       <tr>
@@ -85,174 +174,118 @@
       </tr>
       <tr>
         <td class="label">Commits (90d)</td>
-        <td>{{ opt(card.commit_frequency_90d) }}</td>
+        <td>{{ opt(card.commit_frequency_90d, ",") }}</td>
       </tr>
       <tr>
-        <td class="label">Last release</td>
-        <td>
-          {% if card.latest_release_tag %}
-            <span class="release-tag">{{ card.latest_release_tag }}</span>
-          {% elif card.last_release_date %}
-            {{ card.last_release_date.strftime('%Y-%m-%d') }}
-          {% else %}
-            {{ opt(none) }}
-          {% endif %}
+        <td class="label">Latest release</td>
+        <td>{% if card.latest_release_tag %}<span class="release-tag">{{ card.latest_release_tag }}</span>{% elif card.last_release_date %}{{ card.last_release_date.strftime('%Y-%m-%d') }}{% else %}{{ opt(none) }}{% endif %}
+          {% if card.days_since_last_release is not none %}<small class="muted"> ({{ card.days_since_last_release }}d ago)</small>{% endif %}
         </td>
-      </tr>
-      <tr>
-        <td class="label">Days since release</td>
-        <td>{{ opt(card.days_since_last_release) }}</td>
-      </tr>
-      <tr>
-        <td class="label">Owner commits (52w)</td>
-        <td>{% if card.owner_commit_pct is not none %}{{ "%.0f" | format(card.owner_commit_pct) }}%{% else %}{{ opt(none) }}{% endif %}</td>
       </tr>
       <tr>
         <td class="label">Churn (52w)</td>
         <td>
           {% if card.code_churn_additions_52w is not none or card.code_churn_deletions_52w is not none %}
             {% if card.code_churn_additions_52w is not none %}<span class="text-green">+{{ "{:,}".format(card.code_churn_additions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
-            /
-            {% if card.code_churn_deletions_52w is not none %}<span class="text-red">-{{ "{:,}".format(card.code_churn_deletions_52w) }}</span>{% else %}<span class="muted">?</span>{% endif %}
-          {% else %}<span class="muted">—</span>{% endif %}
+            {% if card.code_churn_deletions_52w is not none %} <span class="text-red">-{{ "{:,}".format(card.code_churn_deletions_52w) }}</span>{% else %} <span class="muted">?</span>{% endif %}
+          {% else %}{{ opt(none) }}{% endif %}
         </td>
       </tr>
+      <tr>
+        <td class="label">Issues</td>
+        <td>{{ card.open_issues }} open / <span class="text-green">{{ card.closed_issues }}</span> closed</td>
+      </tr>
+      <tr>
+        <td class="label">PRs</td>
+        <td>{{ card.open_prs }} open / <span class="text-green">{{ card.closed_prs }}</span> closed</td>
+      </tr>
+      {% if card.issue_response_time_median_hours is not none %}
+      <tr>
+        <td class="label">Response time</td>
+        <td>{{ "%.1f" | format(card.issue_response_time_median_hours) }}h median</td>
+      </tr>
+      {% endif %}
     </table>
-
-    {% if card.top_contributors %}
-    <div class="contributors">
-      <small class="label">Top contributors</small>
-      <div class="avatar-row">
-        {% for c in card.top_contributors %}
-        <a href="https://github.com/{{ c.login }}" target="_blank" rel="noopener" class="avatar-link" title="@{{ c.login }} — {{ '%.0f' | format(c.pct | float) }}%">
-          <img src="https://github.com/{{ c.login }}.png?size=48" alt="@{{ c.login }}" class="avatar" width="40" height="40">
-          <span class="avatar-label">@{{ c.login }}<br><small class="muted">{{ "%.0f" | format(c.pct | float) }}%</small></span>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
   </article>
 
-  <article>
-    <header><strong>Quality Signals</strong></header>
+  {# ── Column 3: Quality ─────────────────────────────────────── #}
+  <article class="metric-card">
+    <header><strong>Quality</strong></header>
+    <div class="quality-checks">
+      <div class="qc-row">{{ check(card.has_readme) }} <span>README</span></div>
+      <div class="qc-row">{{ check(card.has_license) }} <span>LICENSE</span></div>
+      <div class="qc-row">{{ check(card.has_ci) }} <span>CI{% if card.has_ci and card.ci_success_rate is not none %} <small class="muted">{{ "%.0f" | format(card.ci_success_rate) }}%</small>{% endif %}</span></div>
+      <div class="qc-row">{{ check(card.has_contributing) }} <span>Contributing</span></div>
+      <div class="qc-row">{{ check(card.has_code_of_conduct) }} <span>Code of Conduct</span></div>
+      <div class="qc-row">{{ check(card.has_funding) }} <span>Funding</span></div>
+    </div>
+    <hr class="subtle-hr">
     <table class="detail-table">
-      <tr><td class="label">README</td><td>{{ check(card.has_readme) }}</td>
-          <td class="label">LICENSE</td><td>{{ check(card.has_license) }}</td></tr>
-      <tr><td class="label">CI</td><td>{{ check(card.has_ci) }}{% if card.has_ci and card.ci_success_rate is not none %} <small>{{ "%.0f" | format(card.ci_success_rate) }}% passing</small>{% endif %}</td>
-          <td class="label">Contributing</td><td>{{ check(card.has_contributing) }}</td></tr>
-      <tr><td class="label">Code of Conduct</td><td>{{ check(card.has_code_of_conduct) }}</td>
-          <td class="label">Funding</td><td>{{ check(card.has_funding) }}</td></tr>
       <tr>
-        <td class="label">Bus factor</td>
-        <td>{% if card.bus_factor_top3_pct is not none %}{{ "%.0f" | format(card.bus_factor_top3_pct) }}%{% else %}{{ opt(none) }}{% endif %}</td>
         <td class="label">Dependabot</td>
         <td>
-          {% if card.dependabot_open_total is none %}<span class="muted">?</span>
+          {% if card.dependabot_open_total is none %}<span class="muted">—</span>
           {% elif card.dependabot_open_total == 0 %}<span class="text-green">0 &#10004;</span>
           {% else %}<span class="text-red">{{ card.dependabot_open_total }}{% if card.dependabot_open_critical %} ({{ card.dependabot_open_critical }} crit){% endif %}</span>
           {% endif %}
         </td>
       </tr>
+      <tr>
+        <td class="label">Owner commits</td>
+        <td>{% if card.owner_commit_pct is not none %}{{ "%.0f" | format(card.owner_commit_pct) }}%{% else %}{{ opt(none) }}{% endif %}</td>
+      </tr>
     </table>
   </article>
-
 </div>
 
-{# ── Issues & PRs ────────────────────────────────────────────── #}
-<article>
-  <header><strong>Issues & Pull Requests</strong></header>
-  <div class="grid">
-    <div>
-      <table class="detail-table">
-        <tr><td class="label">Issues open</td><td>{{ card.open_issues }}</td>
-            <td class="label">Issues closed</td><td class="text-green">{{ card.closed_issues }}</td></tr>
-        <tr><td class="label">PRs open</td><td>{{ card.open_prs }}</td>
-            <td class="label">PRs closed</td><td class="text-green">{{ card.closed_prs }}</td></tr>
-      </table>
+{# ════════════════════════════════════════════════════════════════
+   PEOPLE — Contributors + Owner detail
+   ════════════════════════════════════════════════════════════════ #}
+{% if card.top_contributors or card.owner_followers is not none %}
+<article class="people-card">
+  <header><strong>People</strong></header>
+  <div class="people-grid">
+    {# Owner detail #}
+    <div class="person-section">
+      <div class="person-header">
+        <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="avatar-link">
+          <img src="https://github.com/{{ card.owner }}.png?size=64" alt="{{ card.owner }}" class="avatar" width="40" height="40">
+        </a>
+        <div>
+          <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="person-name">{{ card.owner }}</a>
+          {% if card.owner_type %}<span class="pill pill-unknown" style="font-size:0.65rem;vertical-align:middle">{{ card.owner_type }}</span>{% endif %}
+          <div class="person-meta">
+            {% if card.owner_followers is not none %}<span>{{ "{:,}".format(card.owner_followers) }} followers</span>{% endif %}
+            {% if card.owner_public_repos is not none %}<span>{{ card.owner_public_repos }} repos</span>{% endif %}
+            {% if card.owner_account_age_days is not none %}<span>{{ "%.1f" | format(card.owner_account_age_days / 365) }}y on GH</span>{% endif %}
+          </div>
+        </div>
+      </div>
     </div>
-    {% if card.issue_response_time_median_hours is not none %}
-    <div>
-      <small class="label">Median issue response time</small><br>
-      {{ "%.1f" | format(card.issue_response_time_median_hours) }} hours
+
+    {# Contributors #}
+    {% if card.top_contributors %}
+    <div class="person-section">
+      <div class="avatar-row">
+        {% for c in card.top_contributors %}
+        <a href="https://github.com/{{ c.login }}" target="_blank" rel="noopener" class="avatar-link" title="@{{ c.login }} — {{ '%.0f' | format(c.pct | float) }}%">
+          <img src="https://github.com/{{ c.login }}.png?size=48" alt="@{{ c.login }}" class="avatar" width="40" height="40">
+          <span class="avatar-label">{{ c.login }}<br><small class="muted">{{ "%.0f" | format(c.pct | float) }}%</small></span>
+        </a>
+        {% endfor %}
+      </div>
     </div>
     {% endif %}
   </div>
 </article>
-
-{# ── Owner ────────────────────────────────────────────────────── #}
-<article>
-  <header><strong>Owner</strong></header>
-  <div class="owner-row">
-    <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="avatar-link owner-avatar-link">
-      <img src="https://github.com/{{ card.owner }}.png?size=80" alt="{{ card.owner }}" class="avatar avatar-lg" width="64" height="64">
-    </a>
-    <div>
-      <a href="https://github.com/{{ card.owner }}" target="_blank" rel="noopener" class="owner-name-link">{{ card.owner }}</a>
-      {% if card.owner_type %}<span class="pill pill-unknown" style="font-size:0.7rem">{{ card.owner_type }}</span>{% endif %}
-      <table class="detail-table" style="margin-top:0.4rem">
-        <tr><td class="label">Followers</td><td>{{ opt(card.owner_followers, ",") }}</td>
-            <td class="label">Public repos</td><td>{{ opt(card.owner_public_repos) }}</td></tr>
-        {% if card.owner_account_age_days is not none %}
-        <tr><td class="label">Account age</td><td colspan="3">{{ "%.1f" | format(card.owner_account_age_days / 365) }} years</td></tr>
-        {% endif %}
-      </table>
-    </div>
-  </div>
-</article>
-
-{# ── Languages ────────────────────────────────────────────────── #}
-{% if card.languages %}
-<article>
-  <header><strong>Languages</strong></header>
-  {% set langs = card.languages.items() | sort(attribute='1', reverse=true) %}
-  {% for lang, pct in langs if pct >= 0.1 %}
-  <div class="lang-row">
-    <span class="lang-name">{{ lang }}</span>
-    <div class="lang-bar-bg">
-      <div class="lang-bar-fill" style="width: {{ pct }}%"></div>
-    </div>
-    <span class="lang-pct">{{ "%.1f" | format(pct) }}%</span>
-  </div>
-  {% endfor %}
-</article>
 {% endif %}
 
-{# ── LLM Assessment ──────────────────────────────────────────── #}
-{% if card.summary or card.verdict or card.strengths or card.concerns %}
-<article class="llm-article">
-  <header><strong>LLM Assessment</strong></header>
-
-  {% if card.verdict %}
-  <span class="pill pill-verdict-{{ card.verdict }} verdict-large">{{ card.verdict | upper }}</span>
-  {% endif %}
-
-  {% if card.summary %}
-  <p class="llm-summary">{{ card.summary }}</p>
-  {% endif %}
-
-  {% if card.strengths %}
-  <div class="llm-list">
-    {% for s in card.strengths %}
-    <div class="llm-item llm-strength"><span class="check-yes">&#10004;</span> {{ s }}</div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  {% if card.concerns %}
-  <div class="llm-list">
-    {% for s in card.concerns %}
-    <div class="llm-item llm-concern"><span class="check-no">&#10008;</span> {{ s }}</div>
-    {% endfor %}
-  </div>
-  {% endif %}
-</article>
-{% endif %}
-
-{# ── Footer actions ──────────────────────────────────────────── #}
+{# ════════════════════════════════════════════════════════════════
+   FOOTER — Metadata + Actions
+   ════════════════════════════════════════════════════════════════ #}
 <div class="card-footer-actions">
   <small class="muted">
-    Fetched {{ card.fetched_at.strftime('%Y-%m-%d %H:%M UTC') }} &middot; repovore v{{ card.card_version }}
+    Fetched {{ card.fetched_at.strftime('%Y-%m-%d %H:%M UTC') }} &middot; v{{ card.card_version }}
   </small>
 
   <span id="staleness-result"></span>
@@ -268,7 +301,7 @@
             } else if (data.error) {
               el.innerHTML = '<span class=\'muted\'>' + data.error + '</span>';
             } else {
-              el.innerHTML = '<span class=\'pill pill-active\'>Up to date</span>';
+              el.innerHTML = '<span class=\'pill pill-active\'>Fresh</span>';
             }
           ">
     Check staleness
