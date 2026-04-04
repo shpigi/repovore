@@ -412,27 +412,28 @@ class GitHubClient:
         logger.info("Warmed stats for %d repos (%d endpoints still computing)", len(full_names), warmed)
 
     def _stats_get(self, full_name: str, endpoint: str) -> dict[str, Any] | list[Any] | None:
-        """GET a GitHub stats endpoint, retrying on 202 (computing) up to 3 times.
+        """GET a GitHub stats endpoint, retrying on 202 (computing) with backoff.
 
         Returns None if GitHub hasn't finished computing the stats within the retry
-        budget (3 attempts × 2s sleep = ~6s max). Callers should treat None as
-        unknown rather than zero.
+        budget (5 attempts with exponential backoff, ~30s max). Callers should treat
+        None as unknown rather than zero.
         """
         token = self._token
         headers: dict[str, str] = {"Accept": "application/vnd.github+json"}
         if token:
             headers["Authorization"] = f"Bearer {token}"
         url = f"https://api.github.com/repos/{full_name}/{endpoint}"
-        for attempt in range(3):
+        max_attempts = 5
+        for attempt in range(max_attempts):
             resp = requests.get(url, headers=headers, timeout=30)
             if resp.status_code == 200:
                 return cast(dict[str, Any] | list[Any], resp.json())
             if resp.status_code == 202:
-                if attempt < 2:
-                    time.sleep(2)
+                if attempt < max_attempts - 1:
+                    time.sleep(2 ** attempt)  # 1, 2, 4, 8s backoff
                 continue
             return None
-        logger.warning("Stats not ready after 3 attempts for %s/%s — skipping", full_name, endpoint)
+        logger.warning("Stats not ready after %d attempts for %s/%s — skipping", max_attempts, full_name, endpoint)
         return None
 
     async def fetch_participation_stats(

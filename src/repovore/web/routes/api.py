@@ -49,7 +49,7 @@ async def list_cards(
         templates = request.app.state.templates
         return templates.TemplateResponse(
             request,
-            "partials/cards_table.html",
+            "partials/cards_body.html",
             {"cards": rows, "sort": sort, "order": order},
         )
 

@@ -1,0 +1,25 @@
+{% macro sort_header(field, label, sort, order) %}
+{% set new_order = "asc" if (sort == field and order == "desc") else "desc" %}
+<th>
+  <a href="#" class="sort-link {% if sort == field %}active{% endif %}"
+     hx-get="/api/cards?sort={{ field }}&order={{ new_order }}"
+     hx-target="#cards-table" hx-swap="innerHTML"
+     hx-include="[name='q'],[name='maintenance'],[name='verdict']">
+    {{ label }}
+    {% if sort == field %}
+      {% if order == "desc" %}&#9660;{% else %}&#9650;{% endif %}
+    {% endif %}
+  </a>
+</th>
+{% endmacro %}
+<thead>
+  <tr>
+    {{ sort_header("health_score", "Health", sort, order) }}
+    {{ sort_header("name", "Repository", sort, order) }}
+    {{ sort_header("stars", "Stars", sort, order) }}
+    <th>Language</th>
+    {{ sort_header("maintenance_level", "Maintenance", sort, order) }}
+    <th>Verdict</th>
+    {{ sort_header("last_commit_date", "Last Commit", sort, order) }}
+  </tr>
+</thead>

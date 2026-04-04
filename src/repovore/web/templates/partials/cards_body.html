@@ -1,0 +1,6 @@
+{% include "partials/cards_thead.html" %}
+<tbody>
+  {% include "partials/cards_rows.html" %}
+</tbody>
+<input type="hidden" id="sort-state" name="sort" value="{{ sort }}" hx-swap-oob="true">
+<input type="hidden" id="order-state" name="order" value="{{ order }}" hx-swap-oob="true">

@@ -537,10 +537,21 @@ class Pipeline:
         if result is None:
             raise RuntimeError("summarize_card returned None — API key missing?")
 
-        card.summary, card.verdict, card.tags, card.strengths, card.concerns = result
+        card.summary = result.summary
+        card.verdict = result.verdict
+        card.tags = result.tags
+        card.strengths = result.strengths
+        card.concerns = result.concerns
         write_card(card, cards_dir, db=self.db)
+        self.db.record_token_usage(
+            model=result.model,
+            input_tokens=result.input_tokens,
+            output_tokens=result.output_tokens,
+            project_path=repo.full_name,
+        )
         self.logger.info(
-            "Summarized: %s (verdict=%s)", repo.full_name, card.verdict
+            "Summarized: %s (verdict=%s, tokens=%d+%d)",
+            repo.full_name, card.verdict, result.input_tokens, result.output_tokens,
         )
 
     @staticmethod

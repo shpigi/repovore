@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import dataclasses
 import json
 import logging
 import os
@@ -17,8 +18,20 @@ _MAX_RETRIES = 2
 logger = logging.getLogger(__name__)
 
 
-def summarize_card(card: RepoCard, config: LLMConfig) -> tuple[str, str, list[str], list[str], list[str]] | None:
-    """Call Claude and return (summary, verdict, tags, strengths, concerns), or None if no API key."""
+@dataclasses.dataclass
+class LLMResult:
+    summary: str
+    verdict: str
+    tags: list[str]
+    strengths: list[str]
+    concerns: list[str]
+    model: str
+    input_tokens: int
+    output_tokens: int
+
+
+def summarize_card(card: RepoCard, config: LLMConfig) -> LLMResult | None:
+    """Return an LLMResult with parsed output + token usage, or None."""
     api_key = os.environ.get(config.token_env_var, "").strip()
     if not api_key:
         return None
@@ -28,6 +41,8 @@ def summarize_card(card: RepoCard, config: LLMConfig) -> tuple[str, str, list[st
     client = anthropic.Anthropic(api_key=api_key)
     prompt = _build_prompt(card, config.readme_max_chars)
     last_exc: Exception | None = None
+    total_input = 0
+    total_output = 0
 
     for attempt in range(_MAX_RETRIES + 1):
         msg = client.messages.create(
@@ -36,8 +51,20 @@ def summarize_card(card: RepoCard, config: LLMConfig) -> tuple[str, str, list[st
             temperature=config.temperature,
             messages=[{"role": "user", "content": prompt}],
         )
+        total_input += msg.usage.input_tokens
+        total_output += msg.usage.output_tokens
         try:
-            return _parse_response(msg.content[0].text)
+            summary, verdict, tags, strengths, concerns = _parse_response(msg.content[0].text)
+            return LLMResult(
+                summary=summary,
+                verdict=verdict,
+                tags=tags,
+                strengths=strengths,
+                concerns=concerns,
+                model=config.model,
+                input_tokens=total_input,
+                output_tokens=total_output,
+            )
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             last_exc = exc
             if attempt < _MAX_RETRIES:

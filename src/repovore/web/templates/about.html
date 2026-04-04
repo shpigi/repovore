@@ -350,6 +350,84 @@
 </section>
 
 {# ════════════════════════════════════════════════════════════════
+   INSTANCE STATS
+   ════════════════════════════════════════════════════════════════ #}
+<section class="about-section">
+  <h2>Instance stats</h2>
+
+  {# Repo overview #}
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span class="stat-value">{{ repo_stats.total_repos }}</span>
+      <span class="stat-label">Repos tracked</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">{{ repo_stats.scored }}</span>
+      <span class="stat-label">Scored</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">{{ repo_stats.summarized }}</span>
+      <span class="stat-label">Summarized</span>
+    </div>
+    <div class="stat-card">
+      <span class="stat-value">{{ repo_stats.avg_health_score if repo_stats.avg_health_score is not none else '—' }}</span>
+      <span class="stat-label">Avg health score</span>
+    </div>
+  </div>
+
+  {# Verdict & maintenance breakdowns side by side #}
+  {% if repo_stats.verdicts or repo_stats.maintenance_levels %}
+  <div class="stats-breakdown-row">
+    {% if repo_stats.verdicts %}
+    <div class="stats-breakdown">
+      <h3>Verdicts</h3>
+      <div class="breakdown-pills">
+        {% for v in ['adopt', 'evaluate', 'hold', 'avoid'] %}
+          {% if v in repo_stats.verdicts %}
+          <span class="pill pill-verdict-{{ v }}">{{ v }} <strong>{{ repo_stats.verdicts[v] }}</strong></span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+    {% if repo_stats.maintenance_levels %}
+    <div class="stats-breakdown">
+      <h3>Maintenance levels</h3>
+      <div class="breakdown-pills">
+        {% for m in ['active', 'maintained', 'minimal', 'abandoned'] %}
+          {% if m in repo_stats.maintenance_levels %}
+          <span class="pill pill-{{ m }}">{{ m }} <strong>{{ repo_stats.maintenance_levels[m] }}</strong></span>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  {# Token usage #}
+  {% if token_usage %}
+  <h3>LLM token usage</h3>
+  <table class="scorer-table">
+    <thead>
+      <tr><th>Model</th><th>Calls</th><th>Input tokens</th><th>Output tokens</th><th>Total tokens</th></tr>
+    </thead>
+    <tbody>
+      {% for row in token_usage %}
+      <tr>
+        <td><code>{{ row.model }}</code></td>
+        <td>{{ "{:,}".format(row.call_count) }}</td>
+        <td>{{ "{:,}".format(row.total_input_tokens) }}</td>
+        <td>{{ "{:,}".format(row.total_output_tokens) }}</td>
+        <td>{{ "{:,}".format(row.total_input_tokens + row.total_output_tokens) }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% endif %}
+</section>
+
+{# ════════════════════════════════════════════════════════════════
    TECH STACK
    ════════════════════════════════════════════════════════════════ #}
 <section class="about-section">

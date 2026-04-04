@@ -796,6 +796,55 @@
 }
 .anatomy-item small { font-size: 0.8rem; opacity: 0.6; }
 
+/* Instance stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.stat-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 1rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.stat-value {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--pico-primary);
+  line-height: 1;
+}
+.stat-label {
+  font-size: 0.8rem;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.stats-breakdown-row {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+}
+.stats-breakdown h3 {
+  font-size: 0.95rem;
+  margin-bottom: 0.5rem;
+}
+.breakdown-pills {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.breakdown-pills .pill strong {
+  margin-left: 0.25em;
+}
+
 /* Tech stack grid */
 .tech-grid {
   display: grid;
@@ -870,6 +919,7 @@
   .use-case-grid { grid-template-columns: 1fr; }
   .anatomy-grid { grid-template-columns: repeat(2, 1fr); }
   .tech-grid { grid-template-columns: repeat(2, 1fr); }
+  .stats-grid { grid-template-columns: repeat(2, 1fr); }
   .llm-output-grid { grid-template-columns: 1fr; }
 }
 
@@ -880,5 +930,6 @@
   .quality-checks { grid-template-columns: 1fr; }
   .anatomy-grid { grid-template-columns: 1fr; }
   .tech-grid { grid-template-columns: 1fr; }
+  .stats-grid { grid-template-columns: 1fr; }
   .about-cta-row { flex-direction: column; }
 }

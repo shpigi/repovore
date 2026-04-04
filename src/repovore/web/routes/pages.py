@@ -56,8 +56,12 @@ async def cards_list_page(request: Request) -> HTMLResponse:
 @router.get("/about", response_class=HTMLResponse)
 async def about_page(request: Request) -> HTMLResponse:
     """Render the about page."""
+    db = _get_db(request)
     templates = request.app.state.templates
-    return templates.TemplateResponse(request, "about.html", {})
+    return templates.TemplateResponse(request, "about.html", {
+        "token_usage": db.get_token_usage_stats(),
+        "repo_stats": db.get_repo_stats(),
+    })
 
 
 @router.get("/cards/{owner}/{repo}", response_class=HTMLResponse)

@@ -52,6 +52,17 @@ CREATE TABLE IF NOT EXISTS metadata (
 )
 """
 
+CREATE_TOKEN_USAGE = """
+CREATE TABLE IF NOT EXISTS token_usage (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    model TEXT NOT NULL,
+    input_tokens INTEGER NOT NULL,
+    output_tokens INTEGER NOT NULL,
+    project_path TEXT,
+    created_at TEXT NOT NULL
+)
+"""
+
 CREATE_CARDS = """
 CREATE TABLE IF NOT EXISTS cards (
     project_path TEXT PRIMARY KEY,
@@ -88,6 +99,7 @@ class Database:
             self._conn.execute(CREATE_PROCESSING_STATE)
             self._conn.execute(CREATE_RUNS)
             self._conn.execute(CREATE_CARDS)
+            self._conn.execute(CREATE_TOKEN_USAGE)
             self._conn.execute(CREATE_METADATA)
 
     def _row_to_dict(self, row: sqlite3.Row | None) -> dict | None:
@@ -403,3 +415,91 @@ class Database:
         )
         row = cursor.fetchone()
         return row["value"] if row else None
+
+    # ── Token usage ────────────────────────────────────────────────────
+
+    def record_token_usage(
+        self,
+        model: str,
+        input_tokens: int,
+        output_tokens: int,
+        project_path: str | None = None,
+    ) -> None:
+        """Record token usage from an LLM API call."""
+        now = _now()
+        with self._lock, self._conn:
+            self._conn.execute(
+                """
+                INSERT INTO token_usage
+                    (model, input_tokens, output_tokens, project_path, created_at)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                (model, input_tokens, output_tokens, project_path, now),
+            )
+
+    def get_token_usage_stats(self) -> list[dict]:
+        """Return token usage aggregated by model."""
+        cursor = self._conn.execute(
+            """
+            SELECT model,
+                   COUNT(*) as call_count,
+                   SUM(input_tokens) as total_input_tokens,
+                   SUM(output_tokens) as total_output_tokens
+            FROM token_usage
+            GROUP BY model
+            ORDER BY total_input_tokens + total_output_tokens DESC
+            """
+        )
+        return [self._row_to_dict(row) for row in cursor.fetchall()]  # type: ignore[misc]
+
+    def get_repo_stats(self) -> dict:
+        """Return summary stats about processed repos."""
+        cursor = self._conn.execute("SELECT COUNT(*) as total FROM repos")
+        total = cursor.fetchone()["total"]
+
+        cursor = self._conn.execute(
+            """
+            SELECT COUNT(DISTINCT project_path) as count
+            FROM processing_state WHERE stage = 'score' AND status = 'done'
+            """
+        )
+        scored = cursor.fetchone()["count"]
+
+        cursor = self._conn.execute(
+            """
+            SELECT COUNT(DISTINCT project_path) as count
+            FROM processing_state WHERE stage = 'summarize' AND status = 'done'
+            """
+        )
+        summarized = cursor.fetchone()["count"]
+
+        cursor = self._conn.execute(
+            """
+            SELECT verdict, COUNT(*) as count FROM cards
+            WHERE verdict IS NOT NULL GROUP BY verdict
+            """
+        )
+        verdicts = {row["verdict"]: row["count"] for row in cursor.fetchall()}
+
+        cursor = self._conn.execute(
+            """
+            SELECT maintenance_level, COUNT(*) as count FROM cards
+            WHERE maintenance_level IS NOT NULL GROUP BY maintenance_level
+            """
+        )
+        maintenance = {row["maintenance_level"]: row["count"] for row in cursor.fetchall()}
+
+        cursor = self._conn.execute(
+            "SELECT AVG(health_score) as avg FROM cards"
+            " WHERE health_score IS NOT NULL"
+        )
+        avg_health = cursor.fetchone()["avg"]
+
+        return {
+            "total_repos": total,
+            "scored": scored,
+            "summarized": summarized,
+            "avg_health_score": round(avg_health, 1) if avg_health else None,
+            "verdicts": verdicts,
+            "maintenance_levels": maintenance,
+        }

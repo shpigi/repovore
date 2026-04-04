@@ -213,7 +213,7 @@
     <header><strong>Quality</strong></header>
     <div class="quality-checks">
       <div class="qc-row">{{ check(card.has_readme) }} <span>README</span></div>
-      <div class="qc-row">{{ check(card.has_license) }} <span>LICENSE</span></div>
+      <div class="qc-row">{% if card.license %}<span class="check-yes">&#10004;</span> <span{% if card.license in ['GNU Affero General Public License v3.0', 'GNU General Public License v3.0', 'GNU General Public License v2.0', 'Other'] %} class="text-red"{% endif %}>{{ card.license }}</span>{% else %}<span class="check-no">&#10008;</span> <span>No license</span>{% endif %}</div>
       <div class="qc-row">{{ check(card.has_ci) }} <span>CI{% if card.has_ci and card.ci_success_rate is not none %} <small class="muted">{{ "%.0f" | format(card.ci_success_rate) }}%</small>{% endif %}</span></div>
       <div class="qc-row">{{ check(card.has_contributing) }} <span>Contributing</span></div>
       <div class="qc-row">{{ check(card.has_code_of_conduct) }} <span>Code of Conduct</span></div>

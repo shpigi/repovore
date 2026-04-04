@@ -24,8 +24,9 @@ Each repo card includes:
 
 - **Identity** — name, owner, description, stars, forks, languages, license, topics
 - **Activity** — last commit, commit frequency, open issues, pull requests, releases
-- **Quality signals** — README, LICENSE, CI, CONTRIBUTING presence; bus factor
+- **Quality signals** — README, license name (with copyleft highlighting), CI, CONTRIBUTING presence; bus factor
 - **Scores** — maintenance level (active / maintained / minimal / abandoned), health score (0–100)
+- **AI analysis** — verdict (adopt/evaluate/hold/avoid), summary, strengths, concerns, tags
 
 ## CLI reference
 
@@ -66,6 +67,8 @@ uv run repovore show-all                               # pretty-print all cards
 uv run repovore serve                                  # http://127.0.0.1:8000
 uv run repovore serve --host 0.0.0.0 --port 3000       # custom bind
 ```
+
+The web UI includes a process bar for adding new repos by URL and reprocessing existing ones directly from the browser. The About page shows instance stats (repo counts, verdict/maintenance breakdowns) and LLM token usage.
 
 ### Maintenance
 
